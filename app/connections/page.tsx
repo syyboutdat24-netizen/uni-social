@@ -30,8 +30,10 @@ export default async function ConnectionsPage() {
   return (
     <div className="min-h-screen bg-gray-950 text-white p-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2">Students</h1>
-        <p className="text-gray-400 mb-8">Connect with other students</p>
+        <div className="flex items-center gap-4 mb-8">
+          <a href="/dashboard" className="text-gray-400 hover:text-white">← Dashboard</a>
+          <h1 className="text-3xl font-bold">Students</h1>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {profiles?.map((profile) => {
             const status = getStatus(profile.id);
@@ -46,9 +48,7 @@ export default async function ConnectionsPage() {
                   <p className="font-semibold truncate">{profile.full_name ?? "Student"}</p>
                   <p className="text-gray-400 text-sm truncate">{profile.bio ?? "No bio yet"}</p>
                 </div>
-                <form action={`/api/connections`} method="POST">
-                  <input type="hidden" name="receiver_id" value={profile.id} />
-                  <input type="hidden" name="status" value={status} />
+                <form method="POST">
                   {status === "none" && (
                     <button formAction={`/api/connections/send?to=${profile.id}`}
                       className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-2 rounded-lg">
