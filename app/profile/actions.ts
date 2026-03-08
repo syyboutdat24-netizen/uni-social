@@ -22,12 +22,14 @@ export async function updateProfile(
   const fullNameRaw = (formData.get("full_name") as string) ?? "";
   const bioRaw = (formData.get("bio") as string) ?? "";
   const avatarRaw = (formData.get("avatar_url") as string) ?? "";
+  const roleRaw = (formData.get("role") as string) ?? "";
 
   const payload = {
     id: user.id,
     full_name: fullNameRaw.trim() === "" ? null : fullNameRaw.trim(),
     bio: bioRaw.trim() === "" ? null : bioRaw.trim(),
     avatar_url: avatarRaw.trim() === "" ? null : avatarRaw.trim(),
+    role: roleRaw.trim() === "" ? null : roleRaw.trim(),
     updated_at: new Date().toISOString(),
   };
 

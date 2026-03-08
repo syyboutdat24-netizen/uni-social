@@ -6,6 +6,7 @@ create table if not exists public.profiles (
   full_name text,
   avatar_url text,
   bio text,
+  role text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -14,21 +15,21 @@ create table if not exists public.profiles (
 alter table public.profiles enable row level security;
 
 -- Allow any authenticated user to see all profiles.
-create policy if not exists "profiles_select_all_authenticated"
+create policy "profiles_select_all_authenticated"
   on public.profiles
   for select
   to authenticated
   using (true);
 
 -- Allow each user to create their own profile row.
-create policy if not exists "profiles_insert_own"
+create policy "profiles_insert_own"
   on public.profiles
   for insert
   to authenticated
   with check (auth.uid() = id);
 
 -- Allow each user to update only their own profile row.
-create policy if not exists "profiles_update_own"
+create policy "profiles_update_own"
   on public.profiles
   for update
   to authenticated

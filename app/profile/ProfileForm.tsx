@@ -8,6 +8,7 @@ type ProfileFormProps = {
     full_name: string | null;
     bio: string | null;
     avatar_url: string | null;
+    role: string | null;
   } | null;
 };
 
@@ -20,6 +21,7 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
   const fullNameDefault = initialProfile?.full_name ?? "";
   const bioDefault = initialProfile?.bio ?? "";
   const avatarDefault = initialProfile?.avatar_url ?? "";
+  const roleDefault = initialProfile?.role ?? "";
 
   const avatarPreview = avatarDefault || null;
 
@@ -116,6 +118,34 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
             placeholder="What are you studying? What are you interested in?"
             className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500"
           />
+        </div>
+
+        <div className="space-y-1">
+          <label
+            htmlFor="role"
+            className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+          >
+            Role
+          </label>
+          <select
+            id="role"
+            name="role"
+            defaultValue={roleDefault}
+            className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+          >
+            <option value="">Select your role</option>
+            <option value="CIMP">CIMP</option>
+            <option value="AUSMAT">AUSMAT</option>
+            <option value="MUFY">MUFY</option>
+            <option value="FIA">FIA</option>
+            <option value="A-Levels">A-Levels</option>
+            <option value="FIS">FIS</option>
+            <option value="PhD">PhD</option>
+            <option value="Master's">Master&apos;s</option>
+            <option value="ADP">ADP</option>
+            <option value="Bachelor's">Bachelor&apos;s</option>
+            <option value="Diploma">Diploma</option>
+          </select>
         </div>
 
         <div className="pt-1">

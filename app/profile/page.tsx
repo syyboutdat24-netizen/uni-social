@@ -9,6 +9,7 @@ type ProfileRow = {
   full_name: string | null;
   bio: string | null;
   avatar_url: string | null;
+  role: string | null;
   updated_at: string | null;
 };
 
@@ -25,13 +26,13 @@ export default async function ProfilePage() {
 
   const { data: myProfileData } = await supabase
     .from("profiles")
-    .select("id, full_name, bio, avatar_url, updated_at")
+    .select("id, full_name, bio, avatar_url, role, updated_at")
     .eq("id", user.id)
     .maybeSingle<ProfileRow>();
 
   const { data: others } = await supabase
     .from("profiles")
-    .select("id, full_name, bio, avatar_url, updated_at")
+    .select("id, full_name, bio, avatar_url, role, updated_at")
     .neq("id", user.id)
     .order("updated_at", { ascending: false })
     .limit(24);
@@ -115,7 +116,7 @@ export default async function ProfilePage() {
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                          {name}
+                          {name} {profile.role && <span className="text-xs text-zinc-500 dark:text-zinc-400">({profile.role})</span>}
                         </p>
                         <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
                           {bio}
