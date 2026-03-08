@@ -24,7 +24,11 @@ export default async function MessagesPage({ params }: { params: { id: string } 
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
       {/* Header */}
       <div className="bg-gray-900 p-4 flex items-center gap-4 border-b border-gray-800">
-        <a href="/connections" className="text-gray-400 hover:text-white">← Back</a>
+        <a href="/dashboard" className="text-indigo-500 font-semibold text-lg">
+          Sunway Connect
+        </a>
+        <span className="text-gray-600">|</span>
+        <a href="/connections" className="text-gray-400 hover:text-white text-sm">← Back</a>
         <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden">
           {otherProfile?.avatar_url
             ? <img src={otherProfile.avatar_url} alt="" className="w-full h-full object-cover" />

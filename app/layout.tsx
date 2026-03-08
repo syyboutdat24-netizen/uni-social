@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Uni Social",
-  description: "University social network — connect with students on your campus.",
+  title: "Sunway Connect",
+  description: "The official social network for Sunway University students.",
 };
 
 export default function RootLayout({

@@ -30,10 +30,17 @@ export default async function ConnectionsPage() {
   return (
     <div className="min-h-screen bg-gray-950 text-white p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 mb-8">
-          <a href="/dashboard" className="text-gray-400 hover:text-white">← Dashboard</a>
-          <h1 className="text-3xl font-bold">Students</h1>
+        <div className="flex items-center justify-between mb-8">
+          <a href="/dashboard" className="text-indigo-500 font-semibold text-lg">
+            Sunway Connect
+          </a>
+          <div className="flex items-center gap-4">
+            <a href="/profile" className="text-gray-400 hover:text-white text-sm">Profile</a>
+            <a href="/dashboard" className="text-gray-400 hover:text-white text-sm">← Dashboard</a>
+          </div>
         </div>
+        <h1 className="text-3xl font-bold mb-2">Students</h1>
+        <p className="text-gray-400 mb-8">Connect with other Sunway students</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {profiles?.map((profile) => {
             const status = getStatus(profile.id);
