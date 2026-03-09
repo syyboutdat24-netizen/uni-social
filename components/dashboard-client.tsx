@@ -1,14 +1,15 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useMemo, useCallback } from "react"
 import { Home, Users, UserPlus, Bell, User, Search, MessageCircle, UserCheck, Heart, Send, GraduationCap, Menu, X, Info, Calendar, Users as UsersIcon, BookOpen, ChevronDown, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
+
+const supabase = createClient()
 
 const getBadge = (badgeRole: string | null | undefined) => {
   if (!badgeRole) return null
-  const roles = ["Founder", "Admin", "Moderator", "Club Leader"]
-  return roles.includes(badgeRole) ? true : null
+  return ["Founder", "Admin", "Moderator", "Club Leader"].includes(badgeRole) ? true : null
 }
 
 const formatTime = (timestamp: string) => {
@@ -86,19 +87,28 @@ interface DashboardClientProps {
   signOut: () => Promise<void>
 }
 
-export function DashboardClient({ user, profile, profiles, connections, posts, likes, replies, subjectMemberships, signOut }: DashboardClientProps) {
+const Badge = ({ badgeRole }: { badgeRole: string | null | undefined }) => {
+  if (!getBadge(badgeRole)) return null
+  return <img src="/verified.png" title={badgeRole ?? ""} className="w-4 h-4 inline-block" />
+}
+
+export function DashboardClient({ user, profile, profiles, connections, posts: initialPosts, likes: initialLikes, replies: initialReplies, subjectMemberships, signOut }: DashboardClientProps) {
   const [activeTab, setActiveTab] = useState<"home" | "friends" | "connections" | "community">("home")
   const [hasNotifications, setHasNotifications] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [showReplyInput, setShowReplyInput] = useState<Record<string, boolean>>({})
+  const [replyInputs, setReplyInputs] = useState<Record<string, string>>({})
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
-  const router = useRouter()
+  const [posts, setPosts] = useState<Post[]>(initialPosts)
+  const [likes, setLikes] = useState<Like[]>(initialLikes)
+  const [replies, setReplies] = useState<Reply[]>(initialReplies)
+  const [newPostContent, setNewPostContent] = useState("")
 
   const displayName = profile?.full_name || user.email.split("@")[0] || "Student"
   const initial = displayName[0].toUpperCase()
 
-  const getStatus = (profileId: string) => {
+  const getStatus = useCallback((profileId: string) => {
     const conn = connections.find(
       c => (c.sender_id === profileId && c.receiver_id === user.id) ||
            (c.sender_id === user.id && c.receiver_id === profileId)
@@ -107,33 +117,89 @@ export function DashboardClient({ user, profile, profiles, connections, posts, l
     if (conn.status === "accepted") return "connected"
     if (conn.sender_id === user.id) return "pending_sent"
     return "pending_received"
-  }
+  }, [connections, user.id])
 
-  const connectedProfiles = profiles.filter(p => getStatus(p.id) === "connected")
-  const filteredProfiles = profiles.filter(p =>
+  const connectedProfiles = useMemo(() => profiles.filter(p => getStatus(p.id) === "connected"), [profiles, getStatus])
+  const filteredProfiles = useMemo(() => profiles.filter(p =>
     (p.full_name ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
     (p.bio ?? "").toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  ), [profiles, searchQuery])
 
-  const communities = profiles.reduce((acc, profile) => {
-    const role = profile.role || "General"
+  const communities = useMemo(() => profiles.reduce((acc, p) => {
+    const role = p.role || "General"
     if (!acc[role]) acc[role] = []
-    acc[role].push(profile)
+    acc[role].push(p)
     return acc
-  }, {} as Record<string, Profile[]>)
+  }, {} as Record<string, Profile[]>), [profiles])
 
   const userCommunity = profile?.role || "General"
 
-  const getLikeCount = (postId: string) => likes.filter(l => l.post_id === postId).length
-  const isLiked = (postId: string) => likes.some(l => l.post_id === postId && l.user_id === user.id)
-  const getRepliesForPost = (postId: string) => replies.filter(r => r.post_id === postId)
-  const toggleReplyInput = (postId: string) => {
+  const getLikeCount = useCallback((postId: string) => likes.filter(l => l.post_id === postId).length, [likes])
+  const isLiked = useCallback((postId: string) => likes.some(l => l.post_id === postId && l.user_id === user.id), [likes, user.id])
+  const getRepliesForPost = useCallback((postId: string) => replies.filter(r => r.post_id === postId), [replies])
+
+  const toggleReplyInput = useCallback((postId: string) => {
     setShowReplyInput(prev => ({ ...prev, [postId]: !prev[postId] }))
+  }, [])
+
+  // Instant like/unlike
+  const handleLike = async (postId: string) => {
+    const already = isLiked(postId)
+    if (already) {
+      const likeToRemove = likes.find(l => l.post_id === postId && l.user_id === user.id)
+      setLikes(prev => prev.filter(l => !(l.post_id === postId && l.user_id === user.id)))
+      await supabase.from("likes").delete().eq("user_id", user.id).eq("post_id", postId)
+    } else {
+      const optimistic: Like = { id: `temp-${Date.now()}`, user_id: user.id, post_id: postId }
+      setLikes(prev => [...prev, optimistic])
+      const { data } = await supabase.from("likes").insert({ user_id: user.id, post_id: postId }).select().single()
+      if (data) setLikes(prev => prev.map(l => l.id === optimistic.id ? data : l))
+    }
   }
 
-  const Badge = ({ badgeRole }: { badgeRole: string | null | undefined }) => {
-    if (!getBadge(badgeRole)) return null
-    return <img src="/verified.png" title={badgeRole ?? ""} className="w-4 h-4 inline-block" />
+  // Instant reply
+  const handleReply = async (postId: string) => {
+    const content = replyInputs[postId]?.trim()
+    if (!content) return
+    setReplyInputs(prev => ({ ...prev, [postId]: "" }))
+    const optimistic: Reply = {
+      id: `temp-${Date.now()}`,
+      user_id: user.id,
+      post_id: postId,
+      content,
+      created_at: new Date().toISOString(),
+      profiles: {
+        full_name: profile?.full_name ?? null,
+        avatar_url: profile?.avatar_url ?? null,
+        role: profile?.role ?? null,
+        badge_role: profile?.badge_role ?? null,
+      }
+    }
+    setReplies(prev => [...prev, optimistic])
+    const { data } = await supabase.from("replies").insert({ user_id: user.id, post_id: postId, content }).select().single()
+    if (data) setReplies(prev => prev.map(r => r.id === optimistic.id ? { ...data, profiles: optimistic.profiles } : r))
+  }
+
+  // Instant post
+  const handlePost = async () => {
+    const content = newPostContent.trim()
+    if (!content) return
+    setNewPostContent("")
+    const optimistic: Post = {
+      id: `temp-${Date.now()}`,
+      user_id: user.id,
+      content,
+      created_at: new Date().toISOString(),
+      profiles: {
+        full_name: profile?.full_name ?? null,
+        avatar_url: profile?.avatar_url ?? null,
+        role: profile?.role ?? null,
+        badge_role: profile?.badge_role ?? null,
+      }
+    }
+    setPosts(prev => [optimistic, ...prev])
+    const { data } = await supabase.from("posts").insert({ user_id: user.id, content }).select().single()
+    if (data) setPosts(prev => prev.map(p => p.id === optimistic.id ? { ...data, profiles: optimistic.profiles } : p))
   }
 
   const ConnectionCard = ({ p }: { p: Profile }) => {
@@ -250,14 +316,12 @@ export function DashboardClient({ user, profile, profiles, connections, posts, l
                 <div className="p-4 border-b app-border">
                   <p className="text-xs app-text-muted uppercase tracking-wider font-semibold">Menu</p>
                 </div>
-
                 <div className="flex-1 p-4 space-y-2">
                   <div className="mb-4">
                     <div className="flex items-center gap-2 px-2 py-2 mb-1">
                       <UsersIcon className="h-4 w-4 text-indigo-500" />
                       <p className="text-sm font-semibold app-text">Communities</p>
                     </div>
-
                     {profile?.role && (
                       <button onClick={() => { setActiveTab("community"); setSidebarOpen(false) }}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors text-left">
@@ -270,7 +334,6 @@ export function DashboardClient({ user, profile, profiles, connections, posts, l
                         </div>
                       </button>
                     )}
-
                     {subjectMemberships.map(subject => (
                       <a key={subject} href="/subjects"
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors">
@@ -283,14 +346,12 @@ export function DashboardClient({ user, profile, profiles, connections, posts, l
                         </div>
                       </a>
                     ))}
-
                     {subjectMemberships.length === 0 && (
                       <a href="/subjects" className="flex items-center gap-2 px-3 py-2 text-xs app-text-muted hover:text-indigo-500 transition-colors">
                         + Browse subject communities
                       </a>
                     )}
                   </div>
-
                   <div className="border-t app-border pt-4">
                     <div className="flex items-center gap-2 px-2 py-2 mb-1">
                       <Calendar className="h-4 w-4 text-indigo-500" />
@@ -309,7 +370,6 @@ export function DashboardClient({ user, profile, profiles, connections, posts, l
                       ))}
                     </div>
                   </div>
-
                   <div className="border-t app-border pt-4">
                     <button onClick={() => setAboutOpen(v => !v)}
                       className="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-lg hover:opacity-80 transition-colors">
@@ -344,21 +404,29 @@ export function DashboardClient({ user, profile, profiles, connections, posts, l
                   <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0">
                     {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : initial}
                   </div>
-                  <form method="POST" action="/api/posts/create" className="flex-1 flex gap-2">
-                    <input name="content" placeholder="Share something with your network..."
-                      className="flex-1 app-input-bg app-text rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
-                    <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-full text-sm flex items-center gap-2">
+                  <div className="flex-1 flex gap-2">
+                    <input
+                      value={newPostContent}
+                      onChange={e => setNewPostContent(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handlePost() } }}
+                      placeholder="Share something with your network..."
+                      className="flex-1 app-input-bg app-text rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <button onClick={handlePost} disabled={!newPostContent.trim()}
+                      className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 rounded-full text-sm flex items-center gap-2">
                       <Send className="h-4 w-4" />
                     </button>
-                  </form>
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-4">
                 {posts.map((post) => {
                   const postReplies = getRepliesForPost(post.id)
+                  const liked = isLiked(post.id)
+                  const likeCount = getLikeCount(post.id)
                   return (
-                    <div key={post.id} className="app-surface rounded-2xl p-5 border app-border">
+                    <div key={post.id} className={cn("app-surface rounded-2xl p-5 border app-border", post.id.startsWith("temp-") && "opacity-70")}>
                       <div className="flex items-center gap-3 mb-3">
                         <a href={`/user/${post.user_id}`}>
                           <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0 hover:opacity-80">
@@ -378,14 +446,10 @@ export function DashboardClient({ user, profile, profiles, connections, posts, l
                       <p className="app-text text-sm leading-relaxed mb-4">{post.content}</p>
 
                       <div className="flex items-center gap-4 border-t app-border pt-3">
-                        <button
-                          onClick={async () => {
-                            await fetch(`/api/posts/like?id=${post.id}`, { method: 'POST' })
-                            router.refresh()
-                          }}
-                          className={cn("flex items-center gap-2 text-sm transition-colors", isLiked(post.id) ? "text-red-400" : "app-text-muted hover:text-red-400")}>
-                          <Heart className={cn("h-4 w-4", isLiked(post.id) && "fill-red-400")} />
-                          {getLikeCount(post.id)} {getLikeCount(post.id) === 1 ? "Like" : "Likes"}
+                        <button onClick={() => handleLike(post.id)}
+                          className={cn("flex items-center gap-2 text-sm transition-colors", liked ? "text-red-400" : "app-text-muted hover:text-red-400")}>
+                          <Heart className={cn("h-4 w-4", liked && "fill-red-400")} />
+                          {likeCount} {likeCount === 1 ? "Like" : "Likes"}
                         </button>
                         <button onClick={() => toggleReplyInput(post.id)}
                           className="flex items-center gap-2 text-sm app-text-muted hover:opacity-80 transition-colors">
@@ -397,7 +461,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts, l
                       {postReplies.length > 0 && (
                         <div className="mt-4 space-y-3 pl-4 border-l-2 app-border">
                           {postReplies.map((reply) => (
-                            <div key={reply.id} className="flex gap-3">
+                            <div key={reply.id} className={cn("flex gap-3", reply.id.startsWith("temp-") && "opacity-70")}>
                               <a href={`/user/${reply.user_id}`}>
                                 <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0 hover:opacity-80">
                                   {reply.profiles?.avatar_url ? <img src={reply.profiles.avatar_url} alt="" className="w-full h-full object-cover" /> : (reply.profiles?.full_name?.[0] ?? "S")}
@@ -421,17 +485,22 @@ export function DashboardClient({ user, profile, profiles, connections, posts, l
 
                       {showReplyInput[post.id] && (
                         <div className="mt-3 pt-3 border-t app-border">
-                          <form method="POST" action="/api/posts/reply" className="flex gap-2">
-                            <input type="hidden" name="postId" value={post.id} />
+                          <div className="flex gap-2">
                             <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0">
                               {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : initial}
                             </div>
-                            <input name="content" placeholder="Write a reply..."
-                              className="flex-1 app-input-bg app-text rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
-                            <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-full text-sm">
+                            <input
+                              value={replyInputs[post.id] ?? ""}
+                              onChange={e => setReplyInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
+                              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleReply(post.id) } }}
+                              placeholder="Write a reply..."
+                              className="flex-1 app-input-bg app-text rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                            <button onClick={() => handleReply(post.id)} disabled={!replyInputs[post.id]?.trim()}
+                              className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-3 py-2 rounded-full text-sm">
                               <Send className="h-4 w-4" />
                             </button>
-                          </form>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -497,15 +566,11 @@ export function DashboardClient({ user, profile, profiles, connections, posts, l
           {activeTab === "community" && (
             <div className="mx-auto max-w-4xl px-4 py-6">
               <h1 className="text-2xl font-bold mb-6 app-text">Community</h1>
-
               <div className="app-surface rounded-2xl border app-border overflow-hidden mb-8">
                 <div className="px-6 py-4 border-b app-border flex items-center justify-between">
                   <h2 className="text-lg font-semibold app-text">Your Communities</h2>
-                  <a href="/subjects" className="text-indigo-500 hover:opacity-80 text-sm font-medium">
-                    Manage subjects →
-                  </a>
+                  <a href="/subjects" className="text-indigo-500 hover:opacity-80 text-sm font-medium">Manage subjects →</a>
                 </div>
-
                 <div className="p-6 space-y-5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -521,7 +586,6 @@ export function DashboardClient({ user, profile, profiles, connections, posts, l
                       {communities[userCommunity]?.length ?? 0} members
                     </span>
                   </div>
-
                   {subjectMemberships.length > 0 && (
                     <div className="border-t app-border pt-5">
                       <div className="flex items-center gap-2 mb-4">
@@ -543,7 +607,6 @@ export function DashboardClient({ user, profile, profiles, connections, posts, l
                       </div>
                     </div>
                   )}
-
                   {subjectMemberships.length === 0 && (
                     <div className="border-t app-border pt-5">
                       <p className="app-text-muted text-sm">No subject communities joined yet.</p>
@@ -552,16 +615,13 @@ export function DashboardClient({ user, profile, profiles, connections, posts, l
                   )}
                 </div>
               </div>
-
               <div>
                 <h2 className="text-lg font-semibold mb-4 app-text">All Program Communities</h2>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {Object.entries(communities).map(([role, members]) => (
                     <div key={role} className={cn(
                       "rounded-xl p-4 border transition-all",
-                      role === userCommunity
-                        ? "bg-indigo-600/10 border-indigo-500/30"
-                        : "app-surface app-border hover:opacity-90"
+                      role === userCommunity ? "bg-indigo-600/10 border-indigo-500/30" : "app-surface app-border hover:opacity-90"
                     )}>
                       <div className="flex items-center gap-3 mb-2">
                         <GraduationCap className={cn("h-5 w-5", role === userCommunity ? "text-indigo-500" : "app-text-muted")} />
