@@ -10,13 +10,13 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, bio, avatar_url, role")
+    .select("id, full_name, bio, avatar_url, role, badge_role")
     .eq("id", user.id)
     .maybeSingle();
 
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, full_name, bio, avatar_url, role")
+    .select("id, full_name, bio, avatar_url, role, badge_role")
     .neq("id", user.id);
 
   const { data: connections } = await supabase
@@ -31,7 +31,7 @@ export default async function DashboardPage() {
 
   const { data: allProfiles } = await supabase
     .from("profiles")
-    .select("id, full_name, avatar_url, role");
+    .select("id, full_name, avatar_url, role, badge_role");
 
   const posts = (rawPosts ?? []).map(post => ({
     ...post,
@@ -41,6 +41,11 @@ export default async function DashboardPage() {
   const { data: likes } = await supabase
     .from("likes")
     .select("*");
+
+  const { data: subjectMemberships } = await supabase
+    .from("subject_memberships")
+    .select("subject")
+    .eq("user_id", user.id);
 
   const { data: rawReplies } = await supabase
     .from("replies")
@@ -61,6 +66,7 @@ export default async function DashboardPage() {
       posts={posts}
       likes={likes ?? []}
       replies={replies}
+      subjectMemberships={subjectMemberships?.map(m => m.subject) ?? []}
       signOut={signOut}
     />
   );

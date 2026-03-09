@@ -140,3 +140,4 @@ On the right, “Students” shows other profiles:
 Once you’ve done this, you have a working **dashboard + student profile system**.  
 Next we can build **connections/friends** and then **real-time messaging** on top of this. 
 
+

@@ -1,38 +1,35 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  
+  console.log("AUTH USER:", user?.id, "AUTH ERROR:", authError);
+  
   if (!user) return NextResponse.redirect(new URL("/login", request.url));
 
   const to = request.nextUrl.searchParams.get("to");
-  if (!to) return NextResponse.redirect(new URL("/connections", request.url));
-
-  // ensure the two users are connected before allowing messaging
-  const { data: connection } = await supabase
-    .from("connections")
-    .select("*")
-    .or(`and(sender_id.eq.${user.id},receiver_id.eq.${to}),and(sender_id.eq.${to},receiver_id.eq.${user.id}))`)
-    .eq("status", "accepted")
-    .single();
-
-  if (!connection) {
-    return NextResponse.redirect(new URL("/connections", request.url));
-  }
+  console.log("SENDING TO:", to);
 
   const formData = await request.formData();
   const content = formData.get("content") as string;
+  console.log("CONTENT:", content);
 
   if (!content?.trim()) {
     return NextResponse.redirect(new URL(`/messages/${to}`, request.url));
   }
 
-  await supabase.from("messages").insert({
+  const { data, error } = await supabase.from("messages").insert({
     sender_id: user.id,
     receiver_id: to,
-    content: content.trim()
+    content: content.trim(),
+    read: false
   });
 
+  console.log("INSERT RESULT:", data, "INSERT ERROR:", error);
+
+  revalidatePath(`/messages/${to}`);
   return NextResponse.redirect(new URL(`/messages/${to}`, request.url));
 }

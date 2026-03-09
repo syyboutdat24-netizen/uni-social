@@ -9,10 +9,22 @@ export async function POST(request: NextRequest) {
   const from = request.nextUrl.searchParams.get("from");
   if (!from) return NextResponse.redirect(new URL("/connections", request.url));
 
-  await supabase.from("connections")
+  const { error } = await supabase.from("connections")
     .update({ status: "accepted" })
     .eq("sender_id", from)
-    .eq("receiver_id", user.id);
+    .eq("receiver_id", user.id)
+    .eq("status", "pending");
 
-  return NextResponse.redirect(new URL("/connections", request.url));
+  if (error) {
+    console.error("accept error", error);
+    // attempt to debug schema
+    const { data: cols, error: colsErr } = await supabase
+      .from("information_schema.columns")
+      .select("column_name")
+      .eq("table_name", "connections");
+    if (colsErr) console.error("schema query error", colsErr);
+    return NextResponse.json({ success: false, error: error.message, columns: cols }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
 }

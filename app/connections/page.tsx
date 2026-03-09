@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { ConnectionCard } from "@/components/ConnectionCard";
+
+export const dynamic = 'force-dynamic';
 
 export default async function ConnectionsPage() {
   const supabase = await createClient();
@@ -45,40 +48,12 @@ export default async function ConnectionsPage() {
           {profiles?.map((profile) => {
             const status = getStatus(profile.id);
             return (
-              <div key={profile.id} className="bg-gray-900 rounded-xl p-5 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full bg-indigo-600 flex items-center justify-center text-xl font-bold overflow-hidden flex-shrink-0">
-                  {profile.avatar_url
-                    ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
-                    : (profile.full_name?.[0] ?? "S")}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{profile.full_name ?? "Student"}</p>
-                  <p className="text-gray-400 text-sm truncate">{profile.bio ?? "No bio yet"}</p>
-                </div>
-                <form method="POST">
-                  {status === "none" && (
-                    <button formAction={`/api/connections/send?to=${profile.id}`}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-2 rounded-lg">
-                      Connect
-                    </button>
-                  )}
-                  {status === "pending_sent" && (
-                    <span className="text-yellow-400 text-sm">Pending</span>
-                  )}
-                  {status === "pending_received" && (
-                    <button formAction={`/api/connections/accept?from=${profile.id}`}
-                      className="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg">
-                      Accept
-                    </button>
-                  )}
-                  {status === "connected" && (
-                    <a href={`/messages/${profile.id}`}
-                      className="bg-gray-700 hover:bg-gray-600 text-white text-sm px-4 py-2 rounded-lg">
-                      Message
-                    </a>
-                  )}
-                </form>
-              </div>
+              <ConnectionCard
+                key={profile.id}
+                profile={profile}
+                initialStatus={status as any}
+                userId={user.id}
+              />
             );
           })}
           {(!profiles || profiles.length === 0) && (
