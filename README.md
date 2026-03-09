@@ -29,6 +29,16 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Custom Domain
+
+This project is designed to run under a simple free hostname.  For example, if you deploy on Vercel the app will be reachable at:
+
+```
+sunwayconnect.vercel.app
+```
+
+or you can use any other free provider (Netlify, Cloudflare Pages, etc.) – just replace the URL above.  The default is baked into `next.config.ts` as `NEXT_PUBLIC_BASE_URL`, so you can override it by setting that environment variable in your deployment settings.
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.

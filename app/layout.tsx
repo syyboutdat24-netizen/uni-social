@@ -17,8 +17,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
   return (
     <html lang="en">
+      <head>
+        {baseUrl && <link rel="canonical" href={baseUrl} />}
+      </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         {children}
       </body>

@@ -42,6 +42,16 @@ export default async function DashboardPage() {
     .from("likes")
     .select("*");
 
+  const { data: rawReplies } = await supabase
+    .from("replies")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  const replies = (rawReplies ?? []).map(reply => ({
+    ...reply,
+    profiles: allProfiles?.find(p => p.id === reply.user_id) ?? null
+  }));
+
   return (
     <DashboardClient
       user={{ id: user.id, email: user.email ?? "" }}
@@ -50,6 +60,7 @@ export default async function DashboardPage() {
       connections={connections ?? []}
       posts={posts}
       likes={likes ?? []}
+      replies={replies}
       signOut={signOut}
     />
   );
