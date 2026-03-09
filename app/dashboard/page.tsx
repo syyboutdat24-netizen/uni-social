@@ -74,7 +74,7 @@ export default async function DashboardPage() {
       profile={profile}
       profiles={profiles ?? []}
       connections={connections ?? []}
-      posts={rawPosts ?? []}
+      posts={(rawPosts ?? []) as any[]}
       likes={likes ?? []}
       replies={rawReplies ?? []}
       subjectMemberships={subjectMemberships?.map(m => m.subject) ?? []}
