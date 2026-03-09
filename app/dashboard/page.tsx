@@ -8,7 +8,6 @@ export default async function DashboardPage() {
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) redirect("/login");
 
-  // Run all independent queries IN PARALLEL instead of one by one
   const [
     { data: profile },
     { data: profiles },
@@ -16,57 +15,41 @@ export default async function DashboardPage() {
     { data: rawPosts },
     { data: subjectMemberships },
   ] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, full_name, bio, avatar_url, role, badge_role")
-      .eq("id", user.id)
-      .maybeSingle(),
-    supabase
-      .from("profiles")
-      .select("id, full_name, bio, avatar_url, role, badge_role")
-      .neq("id", user.id),
-    supabase
-      .from("connections")
-      .select("id, sender_id, receiver_id, status")
-      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`),
-    supabase
-      .from("posts")
-      .select(`
-        id, user_id, content, created_at,
-        profiles:profiles!user_id (full_name, avatar_url, role, badge_role)
-      `)
-      .order("created_at", { ascending: false })
-      .limit(30),
-    supabase
-      .from("subject_memberships")
-      .select("subject")
-      .eq("user_id", user.id),
+    supabase.from("profiles").select("id, full_name, bio, avatar_url, role, badge_role").eq("id", user.id).maybeSingle(),
+    supabase.from("profiles").select("id, full_name, bio, avatar_url, role, badge_role").neq("id", user.id),
+    supabase.from("connections").select("id, sender_id, receiver_id, status").or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`),
+    supabase.from("posts").select("id, user_id, content, created_at").order("created_at", { ascending: false }).limit(30),
+    supabase.from("subject_memberships").select("subject").eq("user_id", user.id),
   ]);
 
-  // Get post IDs so we only fetch relevant likes & replies
-  const postIds = (rawPosts ?? []).map(p => p.id);
+  const postIds = (rawPosts ?? []).map((p: any) => p.id);
+  const allProfileIds = (rawPosts ?? []).map((p: any) => p.user_id);
 
   const [
+    { data: postProfiles },
     { data: likes },
     { data: rawReplies },
   ] = await Promise.all([
-    postIds.length > 0
-      ? supabase
-          .from("likes")
-          .select("id, user_id, post_id")
-          .in("post_id", postIds)
+    allProfileIds.length > 0
+      ? supabase.from("profiles").select("id, full_name, avatar_url, role, badge_role").in("id", allProfileIds)
       : Promise.resolve({ data: [] }),
     postIds.length > 0
-      ? supabase
-          .from("replies")
-          .select(`
-            id, user_id, post_id, content, created_at,
-            profiles:profiles!user_id (full_name, avatar_url, role, badge_role)
-          `)
-          .in("post_id", postIds)
-          .order("created_at", { ascending: true })
+      ? supabase.from("likes").select("id, user_id, post_id").in("post_id", postIds)
+      : Promise.resolve({ data: [] }),
+    postIds.length > 0
+      ? supabase.from("replies").select("id, user_id, post_id, content, created_at").in("post_id", postIds).order("created_at", { ascending: true })
       : Promise.resolve({ data: [] }),
   ]);
+
+  const posts = (rawPosts ?? []).map((post: any) => ({
+    ...post,
+    profiles: (postProfiles ?? []).find((p: any) => p.id === post.user_id) ?? null,
+  }));
+
+  const replies = (rawReplies ?? []).map((reply: any) => ({
+    ...reply,
+    profiles: (postProfiles ?? []).find((p: any) => p.id === reply.user_id) ?? null,
+  }));
 
   return (
     <DashboardClient
@@ -74,10 +57,10 @@ export default async function DashboardPage() {
       profile={profile}
       profiles={profiles ?? []}
       connections={connections ?? []}
-      posts={(rawPosts ?? []) as any[]}
+      posts={posts}
       likes={likes ?? []}
-      replies={rawReplies ?? []}
-      subjectMemberships={subjectMemberships?.map(m => m.subject) ?? []}
+      replies={replies}
+      subjectMemberships={subjectMemberships?.map((m: any) => m.subject) ?? []}
       signOut={signOut}
     />
   );
