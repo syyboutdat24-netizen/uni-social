@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Home, Users, UserPlus, Bell, User, Search, MessageCircle, UserCheck, Heart, Send, GraduationCap, Menu, X, Info, Calendar, Users as UsersIcon, BookOpen, ChevronDown, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -92,6 +93,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts, l
   const [showReplyInput, setShowReplyInput] = useState<Record<string, boolean>>({})
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
+  const router = useRouter()
 
   const displayName = profile?.full_name || user.email.split("@")[0] || "Student"
   const initial = displayName[0].toUpperCase()
