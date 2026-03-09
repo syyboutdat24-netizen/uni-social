@@ -376,12 +376,15 @@ export function DashboardClient({ user, profile, profiles, connections, posts, l
                       <p className="app-text text-sm leading-relaxed mb-4">{post.content}</p>
 
                       <div className="flex items-center gap-4 border-t app-border pt-3">
-                        <form method="POST" action={`/api/posts/like?id=${post.id}`}>
-                          <button type="submit" className={cn("flex items-center gap-2 text-sm transition-colors", isLiked(post.id) ? "text-red-400" : "app-text-muted hover:text-red-400")}>
-                            <Heart className={cn("h-4 w-4", isLiked(post.id) && "fill-red-400")} />
-                            {getLikeCount(post.id)} {getLikeCount(post.id) === 1 ? "Like" : "Likes"}
-                          </button>
-                        </form>
+                        <button
+                          onClick={async () => {
+                            await fetch(`/api/posts/like?id=${post.id}`, { method: 'POST' })
+                            router.refresh()
+                          }}
+                          className={cn("flex items-center gap-2 text-sm transition-colors", isLiked(post.id) ? "text-red-400" : "app-text-muted hover:text-red-400")}>
+                          <Heart className={cn("h-4 w-4", isLiked(post.id) && "fill-red-400")} />
+                          {getLikeCount(post.id)} {getLikeCount(post.id) === 1 ? "Like" : "Likes"}
+                        </button>
                         <button onClick={() => toggleReplyInput(post.id)}
                           className="flex items-center gap-2 text-sm app-text-muted hover:opacity-80 transition-colors">
                           <MessageCircle className="h-4 w-4" />

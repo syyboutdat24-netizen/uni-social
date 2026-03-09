@@ -8,54 +8,65 @@ export default async function DashboardPage() {
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, full_name, bio, avatar_url, role, badge_role")
-    .eq("id", user.id)
-    .maybeSingle();
+  // Run all independent queries IN PARALLEL instead of one by one
+  const [
+    { data: profile },
+    { data: profiles },
+    { data: connections },
+    { data: rawPosts },
+    { data: subjectMemberships },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, full_name, bio, avatar_url, role, badge_role")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("id, full_name, bio, avatar_url, role, badge_role")
+      .neq("id", user.id),
+    supabase
+      .from("connections")
+      .select("id, sender_id, receiver_id, status")
+      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`),
+    supabase
+      .from("posts")
+      .select(`
+        id, user_id, content, created_at,
+        profiles:profiles!user_id (full_name, avatar_url, role, badge_role)
+      `)
+      .order("created_at", { ascending: false })
+      .limit(30),
+    supabase
+      .from("subject_memberships")
+      .select("subject")
+      .eq("user_id", user.id),
+  ]);
 
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, full_name, bio, avatar_url, role, badge_role")
-    .neq("id", user.id);
+  // Get post IDs so we only fetch relevant likes & replies
+  const postIds = (rawPosts ?? []).map(p => p.id);
 
-  const { data: connections } = await supabase
-    .from("connections")
-    .select("*")
-    .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
-
-  const { data: rawPosts } = await supabase
-    .from("posts")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  const { data: allProfiles } = await supabase
-    .from("profiles")
-    .select("id, full_name, avatar_url, role, badge_role");
-
-  const posts = (rawPosts ?? []).map(post => ({
-    ...post,
-    profiles: allProfiles?.find(p => p.id === post.user_id) ?? null
-  }));
-
-  const { data: likes } = await supabase
-    .from("likes")
-    .select("*");
-
-  const { data: subjectMemberships } = await supabase
-    .from("subject_memberships")
-    .select("subject")
-    .eq("user_id", user.id);
-
-  const { data: rawReplies } = await supabase
-    .from("replies")
-    .select("*")
-    .order("created_at", { ascending: true });
-
-  const replies = (rawReplies ?? []).map(reply => ({
-    ...reply,
-    profiles: allProfiles?.find(p => p.id === reply.user_id) ?? null
-  }));
+  const [
+    { data: likes },
+    { data: rawReplies },
+  ] = await Promise.all([
+    postIds.length > 0
+      ? supabase
+          .from("likes")
+          .select("id, user_id, post_id")
+          .in("post_id", postIds)
+      : Promise.resolve({ data: [] }),
+    postIds.length > 0
+      ? supabase
+          .from("replies")
+          .select(`
+            id, user_id, post_id, content, created_at,
+            profiles:profiles!user_id (full_name, avatar_url, role, badge_role)
+          `)
+          .in("post_id", postIds)
+          .order("created_at", { ascending: true })
+      : Promise.resolve({ data: [] }),
+  ]);
 
   return (
     <DashboardClient
@@ -63,9 +74,9 @@ export default async function DashboardPage() {
       profile={profile}
       profiles={profiles ?? []}
       connections={connections ?? []}
-      posts={posts}
+      posts={rawPosts ?? []}
       likes={likes ?? []}
-      replies={replies}
+      replies={rawReplies ?? []}
       subjectMemberships={subjectMemberships?.map(m => m.subject) ?? []}
       signOut={signOut}
     />
