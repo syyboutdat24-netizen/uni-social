@@ -1,14 +1,12 @@
-/**
- * Checks if an email is from the allowed university domain.
- * Used to restrict sign-up and login to university emails only.
- */
 export function isAllowedEmail(email: string): boolean {
   const domain = process.env.ALLOWED_EMAIL_DOMAIN?.toLowerCase().trim();
-  if (!domain) {
-    // If not set, allow all (useful for local dev); in production you should set this
-    return true;
-  }
   const normalized = email.toLowerCase().trim();
+
+  // Always allow this specific email regardless of domain
+  if (normalized === "shumorikawa2020@gmail.com") return true;
+
+  if (!domain) return true;
+
   const suffix = "@" + domain.replace(/^@/, "");
   return normalized.endsWith(suffix);
 }

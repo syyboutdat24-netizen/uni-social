@@ -142,11 +142,9 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
     setShowReplyInput(prev => ({ ...prev, [postId]: !prev[postId] }))
   }, [])
 
-  // Instant like/unlike
   const handleLike = async (postId: string) => {
     const already = isLiked(postId)
     if (already) {
-      const likeToRemove = likes.find(l => l.post_id === postId && l.user_id === user.id)
       setLikes(prev => prev.filter(l => !(l.post_id === postId && l.user_id === user.id)))
       await supabase.from("likes").delete().eq("user_id", user.id).eq("post_id", postId)
     } else {
@@ -157,7 +155,6 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
     }
   }
 
-  // Instant reply
   const handleReply = async (postId: string) => {
     const content = replyInputs[postId]?.trim()
     if (!content) return
@@ -180,7 +177,6 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
     if (data) setReplies(prev => prev.map(r => r.id === optimistic.id ? { ...data, profiles: optimistic.profiles } : r))
   }
 
-  // Instant post
   const handlePost = async () => {
     const content = newPostContent.trim()
     if (!content) return
@@ -286,8 +282,9 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
-            <button className="h-10 w-10 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+          {/* RIGHT SIDE — mobile shows only messages, bell, avatar */}
+          <div className="flex items-center gap-1">
+            <button className="hidden md:flex h-10 w-10 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <Search className="h-5 w-5" />
             </button>
             <a href="/messages" className="h-10 w-10 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
@@ -298,12 +295,12 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
               <Bell className="h-5 w-5" />
               {hasNotifications && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-indigo-500 ring-2 ring-zinc-900" />}
             </button>
-            <a href="/profile" className="h-10 w-10 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+            <a href="/profile" className="hidden md:flex h-10 w-10 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <User className="h-5 w-5" />
             </a>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 font-bold text-white cursor-pointer overflow-hidden">
+            <a href="/profile" className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 font-bold text-white overflow-hidden">
               {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : initial}
-            </div>
+            </a>
           </div>
         </div>
       </header>
