@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from "react"
 import { Home, Users, UserPlus, Bell, User, Search, MessageCircle, UserCheck, Heart, Send, GraduationCap, Menu, X, Info, Calendar, Users as UsersIcon, BookOpen, ChevronDown, ChevronRight, ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
+import { SearchModal } from "@/components/search-modal"
 
 const supabase = createClient()
 
@@ -99,6 +100,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
   const [activeTab, setActiveTab] = useState<"home" | "friends" | "connections" | "community">("home")
   const [hasNotifications, setHasNotifications] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [searchOpen, setSearchOpen] = useState(false)
   const [showReplyInput, setShowReplyInput] = useState<Record<string, boolean>>({})
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({})
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -286,7 +288,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
           </nav>
 
           <div className="flex items-center gap-1">
-            <button className="hidden md:flex h-10 w-10 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+            <button onClick={() => setSearchOpen(true)} className="hidden md:flex h-10 w-10 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <Search className="h-5 w-5" />
             </button>
             <a href="/messages" className="h-10 w-10 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
@@ -317,7 +319,6 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                 </div>
                 <div className="flex-1 p-4 space-y-2">
 
-                  {/* Admin Panel link — staff only */}
                   {isStaff(profile?.badge_role) && (
                     <a href="/admin"
                       className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors">
@@ -330,6 +331,18 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                       </div>
                     </a>
                   )}
+
+                  {/* Search — mobile only */}
+                  <button onClick={() => { setSidebarOpen(false); setSearchOpen(true) }}
+                    className="md:hidden w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors">
+                    <div className="w-8 h-8 rounded-lg app-input-bg border app-border flex items-center justify-center flex-shrink-0">
+                      <Search className="h-4 w-4 app-text-muted" />
+                    </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-sm font-medium app-text">Search</p>
+                      <p className="text-xs app-text-muted">Users, posts, communities</p>
+                    </div>
+                  </button>
 
                   <div className="mb-4">
                     <div className="flex items-center gap-2 px-2 py-2 mb-1">
@@ -667,6 +680,8 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
           </button>
         </form>
       </div>
+
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} currentUserId={user.id} />
     </div>
   )
 }
