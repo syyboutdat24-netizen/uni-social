@@ -44,6 +44,20 @@ export default function MessagesClient({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
+  // Mark message notifications from this sender as read when conversation is opened
+  useEffect(() => {
+    supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("user_id", currentUserId)
+      .eq("from_user_id", otherId)
+      .eq("type", "message")
+      .eq("read", false)
+      .then(() => {})
+  }, [currentUserId, otherId])
+
+  // Real-time: only listen for messages FROM the other person
+  // We do NOT subscribe to our own sent messages — those are handled optimistically
   useEffect(() => {
     const channel = supabase
       .channel("messages-realtime")
@@ -58,28 +72,31 @@ export default function MessagesClient({
         (payload) => {
           const newMsg = payload.new as Message
           if (newMsg.sender_id === otherId) {
-            setMessages((prev) => [...prev, newMsg])
+            setMessages((prev) => {
+              if (prev.some(m => m.id === newMsg.id)) return prev
+              return [...prev, newMsg]
+            })
           }
         }
       )
       .subscribe()
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
+    return () => { supabase.removeChannel(channel) }
   }, [currentUserId, otherId, supabase])
 
   const sendMessage = async () => {
     const content = input.trim()
     if (!content || sending) return
 
+    const optimisticId = `temp-${Date.now()}`
     const optimistic: Message = {
-      id: `temp-${Date.now()}`,
+      id: optimisticId,
       sender_id: currentUserId,
       receiver_id: otherId,
       content,
       created_at: new Date().toISOString(),
     }
+
     setMessages((prev) => [...prev, optimistic])
     setInput("")
     setSending(true)
@@ -94,11 +111,12 @@ export default function MessagesClient({
 
       if (error) throw error
 
+      // Replace optimistic with confirmed DB row
       setMessages((prev) =>
-        prev.map((m) => (m.id === optimistic.id ? data : m))
+        prev.map((m) => (m.id === optimisticId ? data : m))
       )
 
-      // Notify recipient
+      // Notify recipient — sendNotification guards against self-notification
       await sendNotification({
         toUserId: otherId,
         fromUserId: currentUserId,
@@ -107,7 +125,7 @@ export default function MessagesClient({
       })
     } catch (err) {
       console.error("Failed to send:", err)
-      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id))
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
       setInput(content)
     } finally {
       setSending(false)
@@ -128,8 +146,9 @@ export default function MessagesClient({
         <a href={`/user/${otherId}`} className="font-semibold app-text hover:underline">
           {otherProfile?.full_name ?? "Student"}
         </a>
-        <a href="/dashboard" className="ml-auto text-indigo-500 font-bold text-sm">
-          Sunway Connect
+        <a href="/dashboard" className="ml-auto font-bold text-sm">
+          <span className="text-indigo-500">Sunway</span>
+          <span className="app-text"> Connect</span>
         </a>
       </div>
 
