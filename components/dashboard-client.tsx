@@ -217,7 +217,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <Link href={`/user/${p.id}`} className="font-semibold hover:underline">{p.full_name ?? "Student"}</Link>
+              <a href={`/user/${p.id}`} className="font-semibold hover:underline">{p.full_name ?? "Student"}</a>
               {p.role && <span className="text-sm app-text-muted">({p.role})</span>}
               <Badge badgeRole={p.badge_role} />
             </div>
@@ -248,10 +248,10 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
             )}
           </form>
           {status === "connected" && (
-            <Link href={`/messages/${p.id}`}
+            <a href={`/messages/${p.id}`}
               className="flex-1 border app-border hover:opacity-80 app-text text-sm px-4 py-2 rounded-lg flex items-center justify-center gap-2">
               <MessageCircle className="h-4 w-4" /> Message
-            </Link>
+            </a>
           )}
         </div>
       </div>
@@ -260,56 +260,84 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
 
   return (
     <div className="flex min-h-screen flex-col app-bg app-text">
+      {/* TOP HEADER */}
       <header className="sticky top-0 z-50 w-full border-b app-border app-surface shadow-sm">
-        <div className="flex h-16 items-center justify-between px-4 md:px-6">
-          <div className="flex items-center gap-2">
+        <div className="flex h-14 items-center justify-between px-3 md:px-6">
+
+          {/* Left: hamburger + logo */}
+          <div className="flex items-center gap-1.5 min-w-0">
             <button onClick={() => setSidebarOpen(v => !v)}
-              className="h-10 w-10 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+              className="h-9 w-9 flex-shrink-0 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            <h1 className="text-xl font-bold"><span className="text-indigo-500">Sunway</span><span className="app-text"> Connect</span></h1>
+            <h1 className="text-lg font-bold whitespace-nowrap">
+              <span className="text-indigo-500">Sunway</span>
+              <span className="app-text"> Connect</span>
+            </h1>
           </div>
 
-          <nav className="flex items-center gap-1">
+          {/* Centre: tab nav — desktop only */}
+          <nav className="hidden md:flex items-center gap-1">
             {[
-              { tab: "home" as const, icon: <Home className="h-6 w-6" />, label: "Home" },
-              { tab: "friends" as const, icon: <Users className="h-6 w-6" />, label: "Friends" },
-              { tab: "connections" as const, icon: <UserPlus className="h-6 w-6" />, label: "Connections" },
-              { tab: "community" as const, icon: <GraduationCap className="h-6 w-6" />, label: "Community" },
+              { tab: "home" as const, icon: <Home className="h-5 w-5" />, label: "Home" },
+              { tab: "friends" as const, icon: <Users className="h-5 w-5" />, label: "Friends" },
+              { tab: "connections" as const, icon: <UserPlus className="h-5 w-5" />, label: "Connections" },
+              { tab: "community" as const, icon: <GraduationCap className="h-5 w-5" />, label: "Community" },
             ].map(({ tab, icon, label }) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 className={cn(
-                  "flex h-12 w-12 md:w-24 items-center justify-center gap-2 rounded-lg transition-all hover:opacity-80",
+                  "flex h-10 w-24 items-center justify-center gap-1.5 rounded-lg transition-all hover:opacity-80 text-sm font-medium",
                   activeTab === tab ? "text-indigo-500 border-b-2 border-indigo-500" : "app-text-muted"
                 )}>
                 {icon}
-                <span className="hidden md:inline text-sm font-medium">{label}</span>
+                {label}
               </button>
             ))}
           </nav>
 
-          <div className="flex items-center gap-1">
-            <button onClick={() => setSearchOpen(true)} className="hidden md:flex h-10 w-10 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+          {/* Right: action icons */}
+          <div className="flex items-center gap-0.5 flex-shrink-0">
+            <button onClick={() => setSearchOpen(true)}
+              className="h-9 w-9 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <Search className="h-5 w-5" />
             </button>
-            <Link href="/messages" className="h-10 w-10 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+            <Link href="/messages"
+              className="h-9 w-9 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <MessageCircle className="h-5 w-5" />
             </Link>
             <NotificationsPanel userId={user.id} />
-            <Link href="/settings" className="hidden md:flex h-10 w-10 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+            <Link href="/settings"
+              className="h-9 w-9 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <Settings className="h-5 w-5" />
             </Link>
-            <Link href="/profile" className="hidden md:flex h-10 w-10 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
-              <User className="h-5 w-5" />
-            </Link>
-            <Link href="/profile" className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 font-bold text-white overflow-hidden">
+            <Link href="/profile"
+              className="h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 font-bold text-white overflow-hidden flex-shrink-0 ml-1">
               <img src={profile?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
             </Link>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 flex">
+      {/* BOTTOM NAV — mobile only */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 app-surface border-t app-border flex items-center justify-around h-14 px-2">
+        {[
+          { tab: "home" as const, icon: <Home className="h-6 w-6" />, label: "Home" },
+          { tab: "friends" as const, icon: <Users className="h-6 w-6" />, label: "Friends" },
+          { tab: "connections" as const, icon: <UserPlus className="h-6 w-6" />, label: "Connections" },
+          { tab: "community" as const, icon: <GraduationCap className="h-6 w-6" />, label: "Community" },
+        ].map(({ tab, icon, label }) => (
+          <button key={tab} onClick={() => setActiveTab(tab)}
+            className={cn(
+              "flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all",
+              activeTab === tab ? "text-indigo-500" : "app-text-muted"
+            )}>
+            {icon}
+            <span className="text-[10px] font-medium">{label}</span>
+          </button>
+        ))}
+      </nav>
+
+      <main className="flex-1 flex pb-14 md:pb-0">
         {sidebarOpen && (
           <>
             <aside className="fixed inset-y-0 left-0 z-60 w-64 app-surface border-r app-border overflow-y-auto">
@@ -320,7 +348,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                 <div className="flex-1 p-4 space-y-2">
 
                   {isStaff(profile?.badge_role) && (
-                    <Link href="/admin"
+                    <a href="/admin"
                       className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors">
                       <div className="w-8 h-8 rounded-lg bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center flex-shrink-0">
                         <ShieldCheck className="h-4 w-4 text-yellow-500" />
@@ -329,7 +357,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                         <p className="text-sm font-medium text-yellow-500">Admin Panel</p>
                         <p className="text-xs app-text-muted">Manage users & posts</p>
                       </div>
-                    </Link>
+                    </a>
                   )}
 
                   {/* Search — mobile only */}
@@ -344,7 +372,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                     </div>
                   </button>
 
-                  <Link href="/settings"
+                  <a href="/settings"
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors">
                     <div className="w-8 h-8 rounded-lg app-input-bg border app-border flex items-center justify-center flex-shrink-0">
                       <Settings className="h-4 w-4 app-text-muted" />
@@ -353,7 +381,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                       <p className="text-sm font-medium app-text">Settings</p>
                       <p className="text-xs app-text-muted">Notifications, profile, account</p>
                     </div>
-                  </Link>
+                  </a>
 
                   <div className="mb-4">
                     <div className="flex items-center gap-2 px-2 py-2 mb-1">
@@ -362,7 +390,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                     </div>
 
                     {profile?.role && (
-                      <Link href={`/community/${encodeURIComponent(profile.role)}`}
+                      <a href={`/community/${encodeURIComponent(profile.role)}`}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors text-left">
                         <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center flex-shrink-0">
                           <GraduationCap className="h-4 w-4 text-indigo-500" />
@@ -371,11 +399,11 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                           <p className="text-sm font-medium app-text truncate">{profile.role}</p>
                           <p className="text-xs app-text-muted">Program</p>
                         </div>
-                      </Link>
+                      </a>
                     )}
 
                     {subjectMemberships.map(subject => (
-                      <Link key={subject} href={`/community/${encodeURIComponent(subject)}`}
+                      <a key={subject} href={`/community/${encodeURIComponent(subject)}`}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors">
                         <div className="w-8 h-8 rounded-lg app-input-bg border app-border flex items-center justify-center flex-shrink-0">
                           <BookOpen className="h-4 w-4 app-text-muted" />
@@ -384,13 +412,13 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                           <p className="text-sm font-medium app-text truncate">{subject}</p>
                           <p className="text-xs app-text-muted">Subject</p>
                         </div>
-                      </Link>
+                      </a>
                     ))}
 
                     {subjectMemberships.length === 0 && (
-                      <Link href="/subjects" className="flex items-center gap-2 px-3 py-2 text-xs app-text-muted hover:text-indigo-500 transition-colors">
+                      <a href="/subjects" className="flex items-center gap-2 px-3 py-2 text-xs app-text-muted hover:text-indigo-500 transition-colors">
                         + Browse subject communities
-                      </Link>
+                      </a>
                     )}
                   </div>
 
@@ -471,14 +499,14 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                   return (
                     <div key={post.id} className={cn("app-surface rounded-2xl p-5 border app-border", post.id.startsWith("temp-") && "opacity-70")}>
                       <div className="flex items-center gap-3 mb-3">
-                        <Link href={`/user/${post.user_id}`}>
+                        <a href={`/user/${post.user_id}`}>
                           <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0 hover:opacity-80">
                             <img src={post.profiles?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
                           </div>
-                        </Link>
+                        </a>
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Link href={`/user/${post.user_id}`} className="font-semibold text-sm hover:underline app-text">{post.profiles?.full_name ?? "Student"}</Link>
+                            <a href={`/user/${post.user_id}`} className="font-semibold text-sm hover:underline app-text">{post.profiles?.full_name ?? "Student"}</a>
                             {post.profiles?.role && <span className="text-xs app-text-muted">({post.profiles.role})</span>}
                             <Badge badgeRole={post.profiles?.badge_role} />
                           </div>
@@ -505,15 +533,15 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                         <div className="mt-4 space-y-3 pl-4 border-l-2 app-border">
                           {postReplies.map((reply) => (
                             <div key={reply.id} className={cn("flex gap-3", reply.id.startsWith("temp-") && "opacity-70")}>
-                              <Link href={`/user/${reply.user_id}`}>
+                              <a href={`/user/${reply.user_id}`}>
                                 <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0 hover:opacity-80">
                                   <img src={reply.profiles?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
                                 </div>
-                              </Link>
+                              </a>
                               <div className="flex-1">
                                 <div className="app-input-bg rounded-2xl px-4 py-2">
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <Link href={`/user/${reply.user_id}`} className="font-semibold text-sm hover:underline app-text">{reply.profiles?.full_name ?? "Student"}</Link>
+                                    <a href={`/user/${reply.user_id}`} className="font-semibold text-sm hover:underline app-text">{reply.profiles?.full_name ?? "Student"}</a>
                                     {reply.profiles?.role && <span className="text-xs app-text-muted">({reply.profiles.role})</span>}
                                     <Badge badgeRole={reply.profiles?.badge_role} />
                                   </div>
@@ -563,24 +591,24 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                 {connectedProfiles.map((friend) => (
                   <div key={friend.id} className="app-surface rounded-xl p-4 border app-border flex items-center gap-3">
                     <div className="relative">
-                      <Link href={`/user/${friend.id}`}>
+                      <a href={`/user/${friend.id}`}>
                         <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden hover:opacity-80">
                           <img src={friend.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
                         </div>
-                      </Link>
+                      </a>
                       <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-green-500 ring-2 ring-zinc-900" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Link href={`/user/${friend.id}`} className="font-medium hover:underline app-text">{friend.full_name ?? "Student"}</Link>
+                        <a href={`/user/${friend.id}`} className="font-medium hover:underline app-text">{friend.full_name ?? "Student"}</a>
                         {friend.role && <span className="text-xs app-text-muted">({friend.role})</span>}
                         <Badge badgeRole={friend.badge_role} />
                       </div>
                       <p className="text-xs app-text-muted truncate">{friend.bio ?? "No bio yet"}</p>
                     </div>
-                    <Link href={`/messages/${friend.id}`} className="h-8 w-8 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+                    <a href={`/messages/${friend.id}`} className="h-8 w-8 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
                       <MessageCircle className="h-4 w-4" />
-                    </Link>
+                    </a>
                   </div>
                 ))}
                 {connectedProfiles.length === 0 && <p className="app-text-muted col-span-2 text-center py-12">No friends yet. Connect with students first!</p>}
@@ -612,7 +640,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
               <div className="app-surface rounded-2xl border app-border overflow-hidden mb-8">
                 <div className="px-6 py-4 border-b app-border flex items-center justify-between">
                   <h2 className="text-lg font-semibold app-text">Your Communities</h2>
-                  <Link href="/subjects" className="text-indigo-500 hover:opacity-80 text-sm font-medium">Manage subjects →</Link>
+                  <a href="/subjects" className="text-indigo-500 hover:opacity-80 text-sm font-medium">Manage subjects →</a>
                 </div>
                 <div className="p-6 space-y-5">
                   <div className="flex items-center justify-between">
@@ -625,10 +653,10 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                         <p className="app-text-muted text-sm">Program community</p>
                       </div>
                     </div>
-                    <Link href={`/community/${encodeURIComponent(userCommunity)}`}
+                    <a href={`/community/${encodeURIComponent(userCommunity)}`}
                       className="text-xs text-indigo-500 hover:opacity-80 app-input-bg px-3 py-1 rounded-full border border-indigo-500/30">
                       Open →
-                    </Link>
+                    </a>
                   </div>
                   {subjectMemberships.length > 0 && (
                     <div className="border-t app-border pt-5">
@@ -645,8 +673,8 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                               </div>
                               <p className="text-sm font-medium app-text">{subject}</p>
                             </div>
-                            <Link href={`/community/${encodeURIComponent(subject)}`}
-                              className="text-xs app-text-muted hover:opacity-80">Open →</Link>
+                            <a href={`/community/${encodeURIComponent(subject)}`}
+                              className="text-xs app-text-muted hover:opacity-80">Open →</a>
                           </div>
                         ))}
                       </div>
@@ -655,7 +683,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                   {subjectMemberships.length === 0 && (
                     <div className="border-t app-border pt-5">
                       <p className="app-text-muted text-sm">No subject communities joined yet.</p>
-                      <Link href="/subjects" className="text-indigo-500 hover:opacity-80 text-sm mt-1 inline-block">Browse subjects →</Link>
+                      <a href="/subjects" className="text-indigo-500 hover:opacity-80 text-sm mt-1 inline-block">Browse subjects →</a>
                     </div>
                   )}
                 </div>
@@ -664,7 +692,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                 <h2 className="text-lg font-semibold mb-4 app-text">All Program Communities</h2>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {Object.entries(communities).map(([role, members]) => (
-                    <Link key={role} href={`/community/${encodeURIComponent(role)}`} className={cn(
+                    <a key={role} href={`/community/${encodeURIComponent(role)}`} className={cn(
                       "rounded-xl p-4 border transition-all block",
                       role === userCommunity ? "bg-indigo-600/10 border-indigo-500/30" : "app-surface app-border hover:opacity-90"
                     )}>
@@ -674,7 +702,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                         {role === userCommunity && <span className="text-xs text-indigo-500 ml-auto">Yours</span>}
                       </div>
                       <p className="app-text-muted text-xs">{members.length} {members.length === 1 ? "member" : "members"}</p>
-                    </Link>
+                    </a>
                   ))}
                 </div>
               </div>
@@ -684,7 +712,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
         </div>
       </main>
 
-      <div className="fixed bottom-4 right-4">
+      <div className="fixed bottom-16 md:bottom-4 right-4 z-40">
         <form action={signOut}>
           <button type="submit" className="app-input-bg hover:opacity-80 app-text-muted text-sm px-4 py-2 rounded-full border app-border">
             Sign out
