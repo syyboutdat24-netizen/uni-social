@@ -262,7 +262,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
     <div className="flex min-h-screen flex-col app-bg app-text">
       {/* TOP HEADER */}
       <header className="sticky top-0 z-50 w-full border-b app-border app-surface shadow-sm">
-        <div className="flex h-14 items-center justify-between px-3 md:px-6">
+        <div className="relative flex h-14 items-center justify-between px-3 md:px-6">
 
           {/* Left: hamburger + logo */}
           <div className="flex items-center gap-1.5 min-w-0">
@@ -276,8 +276,8 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
             </h1>
           </div>
 
-          {/* Centre: tab nav — desktop only */}
-          <nav className="hidden md:flex items-center gap-1">
+          {/* Centre: tab nav — desktop only, absolutely centered */}
+          <nav className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-1">
             {[
               { tab: "home" as const, icon: <Home className="h-5 w-5" />, label: "Home" },
               { tab: "friends" as const, icon: <Users className="h-5 w-5" />, label: "Friends" },
@@ -301,22 +301,6 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
               className="h-9 w-9 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <Search className="h-5 w-5" />
             </button>
-            <Link href="/messages"
-              className="hidden md:flex h-9 w-9 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
-              <MessageCircle className="h-5 w-5" />
-            </Link>
-            <Link href="/messages"
-              className="hidden md:flex h-9 w-9 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
-              <MessageCircle className="h-5 w-5" />
-            </Link>
-            <Link href="/messages"
-              className="hidden md:flex h-9 w-9 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
-              <MessageCircle className="h-5 w-5" />
-            </Link>
-            <Link href="/messages"
-              className="hidden md:flex h-9 w-9 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
-              <MessageCircle className="h-5 w-5" />
-            </Link>
             <Link href="/messages"
               className="hidden md:flex h-9 w-9 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <MessageCircle className="h-5 w-5" />
