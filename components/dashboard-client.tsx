@@ -248,7 +248,8 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
             )}
           </form>
           {status === "connected" && (
-            <Link href={`/messages/${p.id}`} className="flex-1 border app-border hover:opacity-80 app-text text-sm px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+            <Link href={`/messages/${p.id}`}
+              className="flex-1 border app-border hover:opacity-80 app-text text-sm px-4 py-2 rounded-lg flex items-center justify-center gap-2">
               <MessageCircle className="h-4 w-4" /> Message
             </Link>
           )}
@@ -374,7 +375,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                     )}
 
                     {subjectMemberships.map(subject => (
-                      <a key={subject} href={`/community/${encodeURIComponent(subject)}`}
+                      <Link key={subject} href={`/community/${encodeURIComponent(subject)}`}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors">
                         <div className="w-8 h-8 rounded-lg app-input-bg border app-border flex items-center justify-center flex-shrink-0">
                           <BookOpen className="h-4 w-4 app-text-muted" />
@@ -624,7 +625,8 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                         <p className="app-text-muted text-sm">Program community</p>
                       </div>
                     </div>
-                    <Link href={`/community/${encodeURIComponent(userCommunity)}`} className="text-xs text-indigo-500 hover:opacity-80 app-input-bg px-3 py-1 rounded-full border border-indigo-500/30">
+                    <Link href={`/community/${encodeURIComponent(userCommunity)}`}
+                      className="text-xs text-indigo-500 hover:opacity-80 app-input-bg px-3 py-1 rounded-full border border-indigo-500/30">
                       Open →
                     </Link>
                   </div>
@@ -643,7 +645,8 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                               </div>
                               <p className="text-sm font-medium app-text">{subject}</p>
                             </div>
-                            <Link href={`/community/${encodeURIComponent(subject)}`} className="text-xs app-text-muted hover:opacity-80">Open →</Link>
+                            <Link href={`/community/${encodeURIComponent(subject)}`}
+                              className="text-xs app-text-muted hover:opacity-80">Open →</Link>
                           </div>
                         ))}
                       </div>
@@ -661,7 +664,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                 <h2 className="text-lg font-semibold mb-4 app-text">All Program Communities</h2>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {Object.entries(communities).map(([role, members]) => (
-                    <a key={role} href={`/community/${encodeURIComponent(role)}`} className={cn(
+                    <Link key={role} href={`/community/${encodeURIComponent(role)}`} className={cn(
                       "rounded-xl p-4 border transition-all block",
                       role === userCommunity ? "bg-indigo-600/10 border-indigo-500/30" : "app-surface app-border hover:opacity-90"
                     )}>
