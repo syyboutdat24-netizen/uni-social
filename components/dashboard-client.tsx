@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import Link from "next/link"
+import { sendNotification } from "@/lib/notifications"
 import { Home, Users, UserPlus, Bell, User, Search, MessageCircle, UserCheck, Heart, Send, GraduationCap, Menu, X, Info, Calendar, Users as UsersIcon, BookOpen, ChevronDown, ChevronRight, ShieldCheck, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
@@ -100,6 +101,34 @@ const isStaff = (badgeRole: string | null | undefined) =>
 
 export function DashboardClient({ user, profile, profiles, connections, posts: initialPosts, likes: initialLikes, replies: initialReplies, subjectMemberships, signOut }: DashboardClientProps) {
   const [activeTab, setActiveTab] = useState<"home" | "friends" | "connections" | "community" | "messages">("home")
+  const [unreadSenders, setUnreadSenders] = useState<Set<string>>(new Set())
+
+  // Fetch unread message senders on mount and subscribe to new messages
+  useEffect(() => {
+    const fetchUnread = async () => {
+      const { data } = await supabase
+        .from("messages")
+        .select("sender_id")
+        .eq("receiver_id", user.id)
+        .eq("read", false)
+      if (data) setUnreadSenders(new Set(data.map((m: any) => m.sender_id)))
+    }
+    fetchUnread()
+
+    const channel = supabase
+      .channel("unread-messages")
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "messages",
+        filter: `receiver_id=eq.${user.id}`,
+      }, (payload: any) => {
+        setUnreadSenders(prev => new Set([...prev, payload.new.sender_id]))
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [user.id])
   const [searchQuery, setSearchQuery] = useState("")
   const [searchOpen, setSearchOpen] = useState(false)
   const [showReplyInput, setShowReplyInput] = useState<Record<string, boolean>>({})
@@ -158,6 +187,17 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
       setLikes(prev => [...prev, optimistic])
       const { data } = await supabase.from("likes").insert({ user_id: user.id, post_id: postId }).select().single()
       if (data) setLikes(prev => prev.map(l => l.id === optimistic.id ? data : l))
+      // Notify post owner
+      const post = posts.find(p => p.id === postId)
+      if (post) {
+        await sendNotification({
+          toUserId: post.user_id,
+          fromUserId: user.id,
+          type: "like",
+          message: `${profile?.full_name ?? "Someone"} liked your post`,
+          postId,
+        })
+      }
     }
   }
 
@@ -181,6 +221,17 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
     setReplies(prev => [...prev, optimistic])
     const { data } = await supabase.from("replies").insert({ user_id: user.id, post_id: postId, content }).select().single()
     if (data) setReplies(prev => prev.map(r => r.id === optimistic.id ? { ...data, profiles: optimistic.profiles } : r))
+    // Notify post owner
+    const post = posts.find(p => p.id === postId)
+    if (post) {
+      await sendNotification({
+        toUserId: post.user_id,
+        fromUserId: user.id,
+        type: "comment",
+        message: `${profile?.full_name ?? "Someone"} replied to your post`,
+        postId,
+      })
+    }
   }
 
   const handlePost = async () => {
@@ -202,6 +253,16 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
     setPosts(prev => [optimistic, ...prev])
     const { data } = await supabase.from("posts").insert({ user_id: user.id, content }).select().single()
     if (data) setPosts(prev => prev.map(p => p.id === optimistic.id ? { ...data, profiles: optimistic.profiles } : p))
+    // Notify all friends about new post
+    for (const friend of connectedProfiles) {
+      await sendNotification({
+        toUserId: friend.id,
+        fromUserId: user.id,
+        type: "new_post",
+        message: `${profile?.full_name ?? "Someone"} shared a new post`,
+        postId: data?.id ?? null,
+      })
+    }
   }
 
   const ConnectionCard = ({ p }: { p: Profile }) => {
@@ -302,8 +363,11 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
               <Search className="h-5 w-5" />
             </button>
             <Link href="/messages"
-              className="hidden md:flex h-9 w-9 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+              className="hidden md:flex relative h-9 w-9 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <MessageCircle className="h-5 w-5" />
+              {unreadSenders.size > 0 && (
+                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
+              )}
             </Link>
             <NotificationsPanel userId={user.id} />
             <Link href="/settings"
@@ -321,17 +385,20 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
       {/* BOTTOM NAV — mobile only */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 app-surface border-t app-border flex items-center justify-around h-14 px-2">
         {[
-          { tab: "home" as const, icon: <Home className="h-6 w-6" />, label: "Home" },
-          { tab: "messages" as const, icon: <MessageCircle className="h-6 w-6" />, label: "Messages" },
-          { tab: "connections" as const, icon: <UserPlus className="h-6 w-6" />, label: "Connections" },
-          { tab: "community" as const, icon: <GraduationCap className="h-6 w-6" />, label: "Community" },
-        ].map(({ tab, icon, label }) => (
+          { tab: "home" as const, icon: <Home className="h-6 w-6" />, label: "Home", dot: false },
+          { tab: "messages" as const, icon: <MessageCircle className="h-6 w-6" />, label: "Messages", dot: unreadSenders.size > 0 },
+          { tab: "connections" as const, icon: <UserPlus className="h-6 w-6" />, label: "Connections", dot: false },
+          { tab: "community" as const, icon: <GraduationCap className="h-6 w-6" />, label: "Community", dot: false },
+        ].map(({ tab, icon, label, dot }) => (
           <button key={tab} onClick={() => setActiveTab(tab)}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all",
+              "flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all relative",
               activeTab === tab ? "text-indigo-500" : "app-text-muted"
             )}>
-            {icon}
+            <div className="relative">
+              {icon}
+              {dot && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500" />}
+            </div>
             <span className="text-[10px] font-medium">{label}</span>
           </button>
         ))}
@@ -616,7 +683,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
             </div>
           )}
 
-          {/* MESSAGES TAB */}
+          {/* MESSAGES TAB — mobile */}
           {activeTab === "messages" && (
             <div className="mx-auto max-w-3xl px-4 py-6 w-full">
               <h1 className="text-2xl font-bold mb-1 app-text">Messages</h1>
@@ -627,6 +694,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                 )}
                 {connectedProfiles.map((friend) => (
                   <Link key={friend.id} href={`/messages/${friend.id}`}
+                    onClick={() => setUnreadSenders(prev => { const n = new Set(prev); n.delete(friend.id); return n })}
                     className="flex items-center gap-3 app-surface rounded-xl p-4 border app-border hover:opacity-80 transition-opacity">
                     <div className="relative flex-shrink-0">
                       <div className="w-12 h-12 rounded-full bg-indigo-600 overflow-hidden">
@@ -642,7 +710,12 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                       </div>
                       <p className="text-xs app-text-muted truncate">{friend.bio ?? "Tap to message"}</p>
                     </div>
-                    <MessageCircle className="h-5 w-5 app-text-muted flex-shrink-0" />
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {unreadSenders.has(friend.id) && (
+                        <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+                      )}
+                      <MessageCircle className="h-5 w-5 app-text-muted" />
+                    </div>
                   </Link>
                 ))}
               </div>
@@ -745,7 +818,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
         </div>
       </main>
 
-      <div className="fixed bottom-16 md:bottom-4 right-4 z-40">
+      <div className="fixed bottom-4 right-4">
         <form action={signOut}>
           <button type="submit" className="app-input-bg hover:opacity-80 app-text-muted text-sm px-4 py-2 rounded-full border app-border">
             Sign out
