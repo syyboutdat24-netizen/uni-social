@@ -99,7 +99,7 @@ const isStaff = (badgeRole: string | null | undefined) =>
   ["Founder", "Admin", "Moderator"].includes(badgeRole ?? "")
 
 export function DashboardClient({ user, profile, profiles, connections, posts: initialPosts, likes: initialLikes, replies: initialReplies, subjectMemberships, signOut }: DashboardClientProps) {
-  const [activeTab, setActiveTab] = useState<"home" | "friends" | "connections" | "community">("home")
+  const [activeTab, setActiveTab] = useState<"home" | "friends" | "connections" | "community" | "messages">("home")
   const [searchQuery, setSearchQuery] = useState("")
   const [searchOpen, setSearchOpen] = useState(false)
   const [showReplyInput, setShowReplyInput] = useState<Record<string, boolean>>({})
@@ -298,13 +298,9 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
           {/* Right: action icons */}
           <div className="flex items-center gap-0.5 flex-shrink-0">
             <button onClick={() => setSearchOpen(true)}
-              className="hidden md:flex h-9 w-9 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+              className="h-9 w-9 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <Search className="h-5 w-5" />
             </button>
-            <Link href="/messages"
-              className="h-9 w-9 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
-              <MessageCircle className="h-5 w-5" />
-            </Link>
             <NotificationsPanel userId={user.id} />
             <Link href="/settings"
               className="h-9 w-9 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
@@ -322,7 +318,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 app-surface border-t app-border flex items-center justify-around h-14 px-2">
         {[
           { tab: "home" as const, icon: <Home className="h-6 w-6" />, label: "Home" },
-          { tab: "friends" as const, icon: <Users className="h-6 w-6" />, label: "Friends" },
+          { tab: "messages" as const, icon: <MessageCircle className="h-6 w-6" />, label: "Messages" },
           { tab: "connections" as const, icon: <UserPlus className="h-6 w-6" />, label: "Connections" },
           { tab: "community" as const, icon: <GraduationCap className="h-6 w-6" />, label: "Community" },
         ].map(({ tab, icon, label }) => (
@@ -335,6 +331,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
             <span className="text-[10px] font-medium">{label}</span>
           </button>
         ))}
+      </nav>
       </nav>
 
       <main className="flex-1 flex pb-14 md:pb-0">
@@ -612,6 +609,39 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                   </div>
                 ))}
                 {connectedProfiles.length === 0 && <p className="app-text-muted col-span-2 text-center py-12">No friends yet. Connect with students first!</p>}
+              </div>
+            </div>
+          )}
+
+          {/* MESSAGES TAB */}
+          {activeTab === "messages" && (
+            <div className="mx-auto max-w-3xl px-4 py-6 w-full">
+              <h1 className="text-2xl font-bold mb-1 app-text">Messages</h1>
+              <p className="app-text-muted mb-6">Your conversations with friends</p>
+              <div className="space-y-2">
+                {connectedProfiles.length === 0 && (
+                  <p className="app-text-muted text-center py-12">No friends yet. Connect with students to start messaging!</p>
+                )}
+                {connectedProfiles.map((friend) => (
+                  <Link key={friend.id} href={`/messages/${friend.id}`}
+                    className="flex items-center gap-3 app-surface rounded-xl p-4 border app-border hover:opacity-80 transition-opacity">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-indigo-600 overflow-hidden">
+                        <img src={friend.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
+                      </div>
+                      <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-green-500 ring-2 ring-zinc-900" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium app-text">{friend.full_name ?? "Student"}</span>
+                        {friend.role && <span className="text-xs app-text-muted">({friend.role})</span>}
+                        <Badge badgeRole={friend.badge_role} />
+                      </div>
+                      <p className="text-xs app-text-muted truncate">{friend.bio ?? "Tap to message"}</p>
+                    </div>
+                    <MessageCircle className="h-5 w-5 app-text-muted flex-shrink-0" />
+                  </Link>
+                ))}
               </div>
             </div>
           )}
