@@ -694,7 +694,16 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                 )}
                 {connectedProfiles.map((friend) => (
                   <Link key={friend.id} href={`/messages/${friend.id}`}
-                    onClick={() => setUnreadSenders(prev => { const n = new Set(prev); n.delete(friend.id); return n })}
+                    onClick={async () => {
+                      // Clear unread locally immediately
+                      setUnreadSenders(prev => { const n = new Set(prev); n.delete(friend.id); return n })
+                      // Mark as read in DB
+                      await supabase.from("messages")
+                        .update({ read: true })
+                        .eq("sender_id", friend.id)
+                        .eq("receiver_id", user.id)
+                        .eq("read", false)
+                    }}
                     className="flex items-center gap-3 app-surface rounded-xl p-4 border app-border hover:opacity-80 transition-opacity">
                     <div className="relative flex-shrink-0">
                       <div className="w-12 h-12 rounded-full bg-indigo-600 overflow-hidden">
@@ -703,19 +712,21 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                       <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-green-500 ring-2 ring-zinc-900" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium app-text">{friend.full_name ?? "Student"}</span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={cn("font-medium", unreadSenders.has(friend.id) ? "app-text" : "app-text")}>
+                          {friend.full_name ?? "Student"}
+                        </span>
                         {friend.role && <span className="text-xs app-text-muted">({friend.role})</span>}
                         <Badge badgeRole={friend.badge_role} />
+                        {unreadSenders.has(friend.id) && (
+                          <span className="h-2 w-2 rounded-full bg-red-500 flex-shrink-0" />
+                        )}
                       </div>
-                      <p className="text-xs app-text-muted truncate">{friend.bio ?? "Tap to message"}</p>
+                      <p className={cn("text-xs truncate", unreadSenders.has(friend.id) ? "text-indigo-400 font-medium" : "app-text-muted")}>
+                        {unreadSenders.has(friend.id) ? "New message" : (friend.bio ?? "Tap to message")}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {unreadSenders.has(friend.id) && (
-                        <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
-                      )}
-                      <MessageCircle className="h-5 w-5 app-text-muted" />
-                    </div>
+                    <MessageCircle className="h-5 w-5 app-text-muted flex-shrink-0" />
                   </Link>
                 ))}
               </div>
