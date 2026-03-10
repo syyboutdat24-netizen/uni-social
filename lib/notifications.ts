@@ -37,7 +37,7 @@ export async function sendNotification({
     .maybeSingle()
 
   // If settings exist and the specific type is disabled, skip
-  if (settings && (settings as Record<string, boolean>)[settingKey] === false) return
+  if (settings && (settings as unknown as Record<string, boolean>)[settingKey] === false) return
 
   await supabase.from("notifications").insert({
     user_id: toUserId,
