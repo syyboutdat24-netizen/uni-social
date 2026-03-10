@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useMemo, useCallback } from "react"
-import { Home, Users, UserPlus, Bell, User, Search, MessageCircle, UserCheck, Heart, Send, GraduationCap, Menu, X, Info, Calendar, Users as UsersIcon, BookOpen, ChevronDown, ChevronRight, ShieldCheck } from "lucide-react"
+import { Home, Users, UserPlus, Bell, User, Search, MessageCircle, UserCheck, Heart, Send, GraduationCap, Menu, X, Info, Calendar, Users as UsersIcon, BookOpen, ChevronDown, ChevronRight, ShieldCheck, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { SearchModal } from "@/components/search-modal"
+import NotificationsPanel from "@/components/notifications-panel"
 
 const supabase = createClient()
 
@@ -98,7 +99,6 @@ const isStaff = (badgeRole: string | null | undefined) =>
 
 export function DashboardClient({ user, profile, profiles, connections, posts: initialPosts, likes: initialLikes, replies: initialReplies, subjectMemberships, signOut }: DashboardClientProps) {
   const [activeTab, setActiveTab] = useState<"home" | "friends" | "connections" | "community">("home")
-  const [hasNotifications, setHasNotifications] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchOpen, setSearchOpen] = useState(false)
   const [showReplyInput, setShowReplyInput] = useState<Record<string, boolean>>({})
@@ -294,11 +294,10 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
             <a href="/messages" className="h-10 w-10 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <MessageCircle className="h-5 w-5" />
             </a>
-            <button onClick={() => setHasNotifications(false)}
-              className="relative h-10 w-10 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
-              <Bell className="h-5 w-5" />
-              {hasNotifications && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-indigo-500 ring-2 ring-zinc-900" />}
-            </button>
+            <NotificationsPanel userId={user.id} />
+            <a href="/settings" className="hidden md:flex h-10 w-10 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+              <Settings className="h-5 w-5" />
+            </a>
             <a href="/profile" className="hidden md:flex h-10 w-10 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <User className="h-5 w-5" />
             </a>
@@ -343,6 +342,17 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                       <p className="text-xs app-text-muted">Users, posts, communities</p>
                     </div>
                   </button>
+
+                  <a href="/settings"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors">
+                    <div className="w-8 h-8 rounded-lg app-input-bg border app-border flex items-center justify-center flex-shrink-0">
+                      <Settings className="h-4 w-4 app-text-muted" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium app-text">Settings</p>
+                      <p className="text-xs app-text-muted">Notifications, profile, account</p>
+                    </div>
+                  </a>
 
                   <div className="mb-4">
                     <div className="flex items-center gap-2 px-2 py-2 mb-1">
