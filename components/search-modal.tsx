@@ -53,30 +53,26 @@ export function SearchModal({ open, onClose, currentUserId }: SearchModalProps) 
   const search = useCallback(async (q: string) => {
     if (!q.trim()) { setResults([]); return }
     setLoading(true)
-
     const lower = q.toLowerCase()
 
-    // Search users
-    const { data: users } = await supabase
-      .from("profiles")
-      .select("id, full_name, avatar_url, role, bio")
-      .neq("id", currentUserId)
-      .or(`full_name.ilike.%${q}%,bio.ilike.%${q}%,role.ilike.%${q}%`)
-      .limit(5)
+    const [{ data: users }, { data: posts }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, role, bio")
+        .neq("id", currentUserId)
+        .or(`full_name.ilike.%${q}%,bio.ilike.%${q}%,role.ilike.%${q}%`)
+        .limit(5),
+      supabase
+        .from("posts")
+        .select("id, content, user_id, profiles:profiles!user_id(full_name)")
+        .ilike("content", `%${q}%`)
+        .limit(5),
+    ])
 
-    // Search posts
-    const { data: posts } = await supabase
-      .from("posts")
-      .select("id, content, user_id, profiles:profiles!user_id(full_name)")
-      .ilike("content", `%${q}%`)
-      .limit(5)
-
-    // Filter communities
     const matchedCommunities = ALL_COMMUNITIES
       .filter(c => c.toLowerCase().includes(lower))
       .slice(0, 4)
 
-    // Filter events
     const matchedEvents = EVENTS.filter(e =>
       e.title.toLowerCase().includes(lower)
     )
@@ -163,12 +159,9 @@ export function SearchModal({ open, onClose, currentUserId }: SearchModalProps) 
 
   return (
     <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh] px-4">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Modal */}
       <div className="relative w-full max-w-xl app-surface border app-border rounded-2xl shadow-2xl shadow-black/50 overflow-hidden">
-        {/* Input */}
+
         <div className="flex items-center gap-3 px-4 py-3 border-b app-border">
           <Search className="h-5 w-5 app-text-muted flex-shrink-0" />
           <input
@@ -186,12 +179,11 @@ export function SearchModal({ open, onClose, currentUserId }: SearchModalProps) 
           </button>
         </div>
 
-        {/* Results */}
         {results.length > 0 && (
           <div className="max-h-[60vh] overflow-y-auto py-2">
             {results.map((result, i) => (
-  
-   	        key={`${result.type}-${result.id}`}
+              
+                key={result.type + "-" + result.id}
                 href={result.href}
                 onClick={onClose}
                 className={cn(
@@ -199,7 +191,6 @@ export function SearchModal({ open, onClose, currentUserId }: SearchModalProps) 
                   i === selected ? "bg-indigo-600/20" : "hover:opacity-80"
                 )}
               >
-                {/* Left: avatar or icon */}
                 {result.type === "user" && result.avatar_url ? (
                   <div className="w-8 h-8 rounded-full bg-indigo-600 overflow-hidden flex-shrink-0">
                     <img src={result.avatar_url} alt="" className="w-full h-full object-cover" />
@@ -209,16 +200,12 @@ export function SearchModal({ open, onClose, currentUserId }: SearchModalProps) 
                     {icons[result.type]}
                   </div>
                 )}
-
-                {/* Text */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium app-text truncate">{result.title}</p>
                   {result.subtitle && (
                     <p className="text-xs app-text-muted truncate">{result.subtitle}</p>
                   )}
                 </div>
-
-                {/* Type badge + arrow */}
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span className={cn("text-xs font-medium", typeColors[result.type])}>
                     {typeLabels[result.type]}
@@ -230,14 +217,12 @@ export function SearchModal({ open, onClose, currentUserId }: SearchModalProps) 
           </div>
         )}
 
-        {/* Empty state */}
         {query && !loading && results.length === 0 && (
           <div className="px-4 py-10 text-center">
             <p className="app-text-muted text-sm">No results for "<span className="app-text">{query}</span>"</p>
           </div>
         )}
 
-        {/* Default state */}
         {!query && (
           <div className="px-4 py-6">
             <p className="text-xs app-text-muted uppercase tracking-wider font-semibold mb-3 px-1">Quick Links</p>
@@ -247,8 +232,12 @@ export function SearchModal({ open, onClose, currentUserId }: SearchModalProps) 
                 { label: "Messages", href: "/messages", icon: <User className="h-4 w-4" /> },
                 { label: "Subjects", href: "/subjects", icon: <Users className="h-4 w-4" /> },
               ].map(link => (
-                <a key={link.href} href={link.href} onClick={onClose}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg hover:opacity-80 transition-colors">
+                
+                  key={link.href}
+                  href={link.href}
+                  onClick={onClose}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg hover:opacity-80 transition-colors"
+                >
                   <div className="w-7 h-7 rounded-lg app-input-bg flex items-center justify-center text-indigo-400">
                     {link.icon}
                   </div>
@@ -263,6 +252,7 @@ export function SearchModal({ open, onClose, currentUserId }: SearchModalProps) 
             </p>
           </div>
         )}
+
       </div>
     </div>
   )
