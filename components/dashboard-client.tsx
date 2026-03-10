@@ -210,7 +210,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
         <div className="flex items-start gap-4">
           <div className="relative">
             <div className="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center text-xl font-bold overflow-hidden ring-2 ring-zinc-700">
-              {p.avatar_url ? <img src={p.avatar_url} alt="" className="w-full h-full object-cover" /> : (p.full_name?.[0] ?? "S")}
+              <img src={p.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
             </div>
             <span className="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-green-500 ring-2 ring-zinc-900" />
           </div>
@@ -303,7 +303,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
               <User className="h-5 w-5" />
             </a>
             <a href="/profile" className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 font-bold text-white overflow-hidden">
-              {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : initial}
+              <img src={profile?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
             </a>
           </div>
         </div>
@@ -434,7 +434,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
               <div className="app-surface rounded-2xl p-5 mb-6 border app-border">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0">
-                    {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : initial}
+                    <img src={profile?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 flex gap-2">
                     <input
@@ -462,7 +462,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                       <div className="flex items-center gap-3 mb-3">
                         <a href={`/user/${post.user_id}`}>
                           <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0 hover:opacity-80">
-                            {post.profiles?.avatar_url ? <img src={post.profiles.avatar_url} alt="" className="w-full h-full object-cover" /> : (post.profiles?.full_name?.[0] ?? "S")}
+                            <img src={post.profiles?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
                           </div>
                         </a>
                         <div>
@@ -496,7 +496,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                             <div key={reply.id} className={cn("flex gap-3", reply.id.startsWith("temp-") && "opacity-70")}>
                               <a href={`/user/${reply.user_id}`}>
                                 <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0 hover:opacity-80">
-                                  {reply.profiles?.avatar_url ? <img src={reply.profiles.avatar_url} alt="" className="w-full h-full object-cover" /> : (reply.profiles?.full_name?.[0] ?? "S")}
+                                  <img src={reply.profiles?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
                                 </div>
                               </a>
                               <div className="flex-1">
@@ -519,7 +519,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                         <div className="mt-3 pt-3 border-t app-border">
                           <div className="flex gap-2">
                             <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0">
-                              {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : initial}
+                              <img src={profile?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
                             </div>
                             <input
                               value={replyInputs[post.id] ?? ""}
@@ -554,7 +554,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                     <div className="relative">
                       <a href={`/user/${friend.id}`}>
                         <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden hover:opacity-80">
-                          {friend.avatar_url ? <img src={friend.avatar_url} alt="" className="w-full h-full object-cover" /> : (friend.full_name?.[0] ?? "S")}
+                          <img src={friend.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
                         </div>
                       </a>
                       <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-green-500 ring-2 ring-zinc-900" />

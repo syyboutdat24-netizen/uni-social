@@ -81,7 +81,7 @@ const Avatar = ({ profile, size = "sm" }: { profile: { full_name?: string | null
   const initial = profile?.full_name?.[0]?.toUpperCase() ?? "S"
   return (
     <div className={cn("rounded-full bg-indigo-600 flex items-center justify-center font-bold text-white overflow-hidden flex-shrink-0", sizes[size])}>
-      {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : initial}
+      <img src={profile?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
     </div>
   )
 }
