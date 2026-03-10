@@ -332,7 +332,6 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
           </button>
         ))}
       </nav>
-      </nav>
 
       <main className="flex-1 flex pb-14 md:pb-0">
         {sidebarOpen && (
