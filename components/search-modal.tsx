@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
+import React from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Search, X, User, FileText, Users, Calendar, ArrowRight } from "lucide-react"
 import { PROGRAM_SUBJECTS } from "@/lib/subjects"
@@ -136,7 +137,7 @@ export function SearchModal({ open, onClose, currentUserId }: SearchModalProps) 
 
   if (!open) return null
 
-  const icons: Record<string, JSX.Element> = {
+  const icons: Record<string, React.ReactElement> = {
     user: <User className="h-4 w-4" />,
     post: <FileText className="h-4 w-4" />,
     community: <Users className="h-4 w-4" />,
