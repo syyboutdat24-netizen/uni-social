@@ -117,9 +117,7 @@ export default function MessagesClient({
         <a href={`/user/${otherId}`} className="font-semibold app-text hover:underline">
           {otherProfile?.full_name ?? "Student"}
         </a>
-        <a href="/dashboard" className="ml-auto text-indigo-500 font-bold text-sm">
-          Sunway Connect
-        </a>
+          <a href="/dashboard" className="ml-auto font-bold text-sm"><span className="text-indigo-500">Sunway</span><span className="app-text"> Connect</span></a>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2 app-bg">

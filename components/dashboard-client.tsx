@@ -266,7 +266,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
               className="h-10 w-10 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            <h1 className="text-xl font-bold app-text">Sunway Connect</h1>
+            <h1 className="text-xl font-bold"><span className="text-indigo-500">Sunway</span><span className="app-text"> Connect</span></h1>
           </div>
 
           <nav className="flex items-center gap-1">
