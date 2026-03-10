@@ -282,7 +282,6 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
             ))}
           </nav>
 
-          {/* RIGHT SIDE — mobile shows only messages, bell, avatar */}
           <div className="flex items-center gap-1">
             <button className="hidden md:flex h-10 w-10 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <Search className="h-5 w-5" />
@@ -319,8 +318,10 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                       <UsersIcon className="h-4 w-4 text-indigo-500" />
                       <p className="text-sm font-semibold app-text">Communities</p>
                     </div>
+
+                    {/* Program community link */}
                     {profile?.role && (
-                      <button onClick={() => { setActiveTab("community"); setSidebarOpen(false) }}
+                      <a href={`/community/${encodeURIComponent(profile.role)}`}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors text-left">
                         <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center flex-shrink-0">
                           <GraduationCap className="h-4 w-4 text-indigo-500" />
@@ -329,10 +330,12 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                           <p className="text-sm font-medium app-text truncate">{profile.role}</p>
                           <p className="text-xs app-text-muted">Program</p>
                         </div>
-                      </button>
+                      </a>
                     )}
+
+                    {/* Subject community links */}
                     {subjectMemberships.map(subject => (
-                      <a key={subject} href="/subjects"
+                      <a key={subject} href={`/community/${encodeURIComponent(subject)}`}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors">
                         <div className="w-8 h-8 rounded-lg app-input-bg border app-border flex items-center justify-center flex-shrink-0">
                           <BookOpen className="h-4 w-4 app-text-muted" />
@@ -343,12 +346,14 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                         </div>
                       </a>
                     ))}
+
                     {subjectMemberships.length === 0 && (
                       <a href="/subjects" className="flex items-center gap-2 px-3 py-2 text-xs app-text-muted hover:text-indigo-500 transition-colors">
                         + Browse subject communities
                       </a>
                     )}
                   </div>
+
                   <div className="border-t app-border pt-4">
                     <div className="flex items-center gap-2 px-2 py-2 mb-1">
                       <Calendar className="h-4 w-4 text-indigo-500" />
@@ -367,6 +372,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                       ))}
                     </div>
                   </div>
+
                   <div className="border-t app-border pt-4">
                     <button onClick={() => setAboutOpen(v => !v)}
                       className="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-lg hover:opacity-80 transition-colors">
@@ -579,9 +585,10 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                         <p className="app-text-muted text-sm">Program community</p>
                       </div>
                     </div>
-                    <span className="text-xs app-text-muted app-input-bg px-3 py-1 rounded-full">
-                      {communities[userCommunity]?.length ?? 0} members
-                    </span>
+                    <a href={`/community/${encodeURIComponent(userCommunity)}`}
+                      className="text-xs text-indigo-500 hover:opacity-80 app-input-bg px-3 py-1 rounded-full border border-indigo-500/30">
+                      Open →
+                    </a>
                   </div>
                   {subjectMemberships.length > 0 && (
                     <div className="border-t app-border pt-5">
@@ -598,7 +605,8 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                               </div>
                               <p className="text-sm font-medium app-text">{subject}</p>
                             </div>
-                            <a href="/subjects" className="text-xs app-text-muted hover:opacity-80">View →</a>
+                            <a href={`/community/${encodeURIComponent(subject)}`}
+                              className="text-xs app-text-muted hover:opacity-80">Open →</a>
                           </div>
                         ))}
                       </div>
@@ -616,8 +624,8 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                 <h2 className="text-lg font-semibold mb-4 app-text">All Program Communities</h2>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {Object.entries(communities).map(([role, members]) => (
-                    <div key={role} className={cn(
-                      "rounded-xl p-4 border transition-all",
+                    <a key={role} href={`/community/${encodeURIComponent(role)}`} className={cn(
+                      "rounded-xl p-4 border transition-all block",
                       role === userCommunity ? "bg-indigo-600/10 border-indigo-500/30" : "app-surface app-border hover:opacity-90"
                     )}>
                       <div className="flex items-center gap-3 mb-2">
@@ -626,7 +634,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                         {role === userCommunity && <span className="text-xs text-indigo-500 ml-auto">Yours</span>}
                       </div>
                       <p className="app-text-muted text-xs">{members.length} {members.length === 1 ? "member" : "members"}</p>
-                    </div>
+                    </a>
                   ))}
                 </div>
               </div>
