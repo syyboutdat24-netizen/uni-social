@@ -298,7 +298,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
           {/* Right: action icons */}
           <div className="flex items-center gap-0.5 flex-shrink-0">
             <button onClick={() => setSearchOpen(true)}
-              className="h-9 w-9 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+              className="hidden md:flex h-9 w-9 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <Search className="h-5 w-5" />
             </button>
             <Link href="/messages"
