@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useCallback } from "react"
+import Link from "next/link"
 import { Home, Users, UserPlus, Bell, User, Search, MessageCircle, UserCheck, Heart, Send, GraduationCap, Menu, X, Info, Calendar, Users as UsersIcon, BookOpen, ChevronDown, ChevronRight, ShieldCheck, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
@@ -216,7 +217,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <a href={`/user/${p.id}`} className="font-semibold hover:underline">{p.full_name ?? "Student"}</a>
+              <Link href={`/user/${p.id}`} className="font-semibold hover:underline">{p.full_name ?? "Student"}</Link>
               {p.role && <span className="text-sm app-text-muted">({p.role})</span>}
               <Badge badgeRole={p.badge_role} />
             </div>
@@ -247,10 +248,9 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
             )}
           </form>
           {status === "connected" && (
-            <a href={`/messages/${p.id}`}
-              className="flex-1 border app-border hover:opacity-80 app-text text-sm px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+            <Link href={`/messages/${p.id}`} className="flex-1 border app-border hover:opacity-80 app-text text-sm px-4 py-2 rounded-lg flex items-center justify-center gap-2">
               <MessageCircle className="h-4 w-4" /> Message
-            </a>
+            </Link>
           )}
         </div>
       </div>
@@ -291,19 +291,19 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
             <button onClick={() => setSearchOpen(true)} className="hidden md:flex h-10 w-10 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <Search className="h-5 w-5" />
             </button>
-            <a href="/messages" className="h-10 w-10 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+            <Link href="/messages" className="h-10 w-10 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <MessageCircle className="h-5 w-5" />
-            </a>
+            </Link>
             <NotificationsPanel userId={user.id} />
-            <a href="/settings" className="hidden md:flex h-10 w-10 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+            <Link href="/settings" className="hidden md:flex h-10 w-10 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <Settings className="h-5 w-5" />
-            </a>
-            <a href="/profile" className="hidden md:flex h-10 w-10 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+            </Link>
+            <Link href="/profile" className="hidden md:flex h-10 w-10 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <User className="h-5 w-5" />
-            </a>
-            <a href="/profile" className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 font-bold text-white overflow-hidden">
+            </Link>
+            <Link href="/profile" className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 font-bold text-white overflow-hidden">
               <img src={profile?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
-            </a>
+            </Link>
           </div>
         </div>
       </header>
@@ -319,7 +319,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                 <div className="flex-1 p-4 space-y-2">
 
                   {isStaff(profile?.badge_role) && (
-                    <a href="/admin"
+                    <Link href="/admin"
                       className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors">
                       <div className="w-8 h-8 rounded-lg bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center flex-shrink-0">
                         <ShieldCheck className="h-4 w-4 text-yellow-500" />
@@ -328,7 +328,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                         <p className="text-sm font-medium text-yellow-500">Admin Panel</p>
                         <p className="text-xs app-text-muted">Manage users & posts</p>
                       </div>
-                    </a>
+                    </Link>
                   )}
 
                   {/* Search — mobile only */}
@@ -343,7 +343,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                     </div>
                   </button>
 
-                  <a href="/settings"
+                  <Link href="/settings"
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors">
                     <div className="w-8 h-8 rounded-lg app-input-bg border app-border flex items-center justify-center flex-shrink-0">
                       <Settings className="h-4 w-4 app-text-muted" />
@@ -352,7 +352,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                       <p className="text-sm font-medium app-text">Settings</p>
                       <p className="text-xs app-text-muted">Notifications, profile, account</p>
                     </div>
-                  </a>
+                  </Link>
 
                   <div className="mb-4">
                     <div className="flex items-center gap-2 px-2 py-2 mb-1">
@@ -361,7 +361,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                     </div>
 
                     {profile?.role && (
-                      <a href={`/community/${encodeURIComponent(profile.role)}`}
+                      <Link href={`/community/${encodeURIComponent(profile.role)}`}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors text-left">
                         <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center flex-shrink-0">
                           <GraduationCap className="h-4 w-4 text-indigo-500" />
@@ -370,7 +370,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                           <p className="text-sm font-medium app-text truncate">{profile.role}</p>
                           <p className="text-xs app-text-muted">Program</p>
                         </div>
-                      </a>
+                      </Link>
                     )}
 
                     {subjectMemberships.map(subject => (
@@ -383,13 +383,13 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                           <p className="text-sm font-medium app-text truncate">{subject}</p>
                           <p className="text-xs app-text-muted">Subject</p>
                         </div>
-                      </a>
+                      </Link>
                     ))}
 
                     {subjectMemberships.length === 0 && (
-                      <a href="/subjects" className="flex items-center gap-2 px-3 py-2 text-xs app-text-muted hover:text-indigo-500 transition-colors">
+                      <Link href="/subjects" className="flex items-center gap-2 px-3 py-2 text-xs app-text-muted hover:text-indigo-500 transition-colors">
                         + Browse subject communities
-                      </a>
+                      </Link>
                     )}
                   </div>
 
@@ -470,14 +470,14 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                   return (
                     <div key={post.id} className={cn("app-surface rounded-2xl p-5 border app-border", post.id.startsWith("temp-") && "opacity-70")}>
                       <div className="flex items-center gap-3 mb-3">
-                        <a href={`/user/${post.user_id}`}>
+                        <Link href={`/user/${post.user_id}`}>
                           <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0 hover:opacity-80">
                             <img src={post.profiles?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
                           </div>
-                        </a>
+                        </Link>
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <a href={`/user/${post.user_id}`} className="font-semibold text-sm hover:underline app-text">{post.profiles?.full_name ?? "Student"}</a>
+                            <Link href={`/user/${post.user_id}`} className="font-semibold text-sm hover:underline app-text">{post.profiles?.full_name ?? "Student"}</Link>
                             {post.profiles?.role && <span className="text-xs app-text-muted">({post.profiles.role})</span>}
                             <Badge badgeRole={post.profiles?.badge_role} />
                           </div>
@@ -504,15 +504,15 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                         <div className="mt-4 space-y-3 pl-4 border-l-2 app-border">
                           {postReplies.map((reply) => (
                             <div key={reply.id} className={cn("flex gap-3", reply.id.startsWith("temp-") && "opacity-70")}>
-                              <a href={`/user/${reply.user_id}`}>
+                              <Link href={`/user/${reply.user_id}`}>
                                 <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0 hover:opacity-80">
                                   <img src={reply.profiles?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
                                 </div>
-                              </a>
+                              </Link>
                               <div className="flex-1">
                                 <div className="app-input-bg rounded-2xl px-4 py-2">
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <a href={`/user/${reply.user_id}`} className="font-semibold text-sm hover:underline app-text">{reply.profiles?.full_name ?? "Student"}</a>
+                                    <Link href={`/user/${reply.user_id}`} className="font-semibold text-sm hover:underline app-text">{reply.profiles?.full_name ?? "Student"}</Link>
                                     {reply.profiles?.role && <span className="text-xs app-text-muted">({reply.profiles.role})</span>}
                                     <Badge badgeRole={reply.profiles?.badge_role} />
                                   </div>
@@ -562,24 +562,24 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                 {connectedProfiles.map((friend) => (
                   <div key={friend.id} className="app-surface rounded-xl p-4 border app-border flex items-center gap-3">
                     <div className="relative">
-                      <a href={`/user/${friend.id}`}>
+                      <Link href={`/user/${friend.id}`}>
                         <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden hover:opacity-80">
                           <img src={friend.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
                         </div>
-                      </a>
+                      </Link>
                       <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-green-500 ring-2 ring-zinc-900" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <a href={`/user/${friend.id}`} className="font-medium hover:underline app-text">{friend.full_name ?? "Student"}</a>
+                        <Link href={`/user/${friend.id}`} className="font-medium hover:underline app-text">{friend.full_name ?? "Student"}</Link>
                         {friend.role && <span className="text-xs app-text-muted">({friend.role})</span>}
                         <Badge badgeRole={friend.badge_role} />
                       </div>
                       <p className="text-xs app-text-muted truncate">{friend.bio ?? "No bio yet"}</p>
                     </div>
-                    <a href={`/messages/${friend.id}`} className="h-8 w-8 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+                    <Link href={`/messages/${friend.id}`} className="h-8 w-8 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
                       <MessageCircle className="h-4 w-4" />
-                    </a>
+                    </Link>
                   </div>
                 ))}
                 {connectedProfiles.length === 0 && <p className="app-text-muted col-span-2 text-center py-12">No friends yet. Connect with students first!</p>}
@@ -611,7 +611,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
               <div className="app-surface rounded-2xl border app-border overflow-hidden mb-8">
                 <div className="px-6 py-4 border-b app-border flex items-center justify-between">
                   <h2 className="text-lg font-semibold app-text">Your Communities</h2>
-                  <a href="/subjects" className="text-indigo-500 hover:opacity-80 text-sm font-medium">Manage subjects →</a>
+                  <Link href="/subjects" className="text-indigo-500 hover:opacity-80 text-sm font-medium">Manage subjects →</Link>
                 </div>
                 <div className="p-6 space-y-5">
                   <div className="flex items-center justify-between">
@@ -624,10 +624,9 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                         <p className="app-text-muted text-sm">Program community</p>
                       </div>
                     </div>
-                    <a href={`/community/${encodeURIComponent(userCommunity)}`}
-                      className="text-xs text-indigo-500 hover:opacity-80 app-input-bg px-3 py-1 rounded-full border border-indigo-500/30">
+                    <Link href={`/community/${encodeURIComponent(userCommunity)}`} className="text-xs text-indigo-500 hover:opacity-80 app-input-bg px-3 py-1 rounded-full border border-indigo-500/30">
                       Open →
-                    </a>
+                    </Link>
                   </div>
                   {subjectMemberships.length > 0 && (
                     <div className="border-t app-border pt-5">
@@ -644,8 +643,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                               </div>
                               <p className="text-sm font-medium app-text">{subject}</p>
                             </div>
-                            <a href={`/community/${encodeURIComponent(subject)}`}
-                              className="text-xs app-text-muted hover:opacity-80">Open →</a>
+                            <Link href={`/community/${encodeURIComponent(subject)}`} className="text-xs app-text-muted hover:opacity-80">Open →</Link>
                           </div>
                         ))}
                       </div>
@@ -654,7 +652,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                   {subjectMemberships.length === 0 && (
                     <div className="border-t app-border pt-5">
                       <p className="app-text-muted text-sm">No subject communities joined yet.</p>
-                      <a href="/subjects" className="text-indigo-500 hover:opacity-80 text-sm mt-1 inline-block">Browse subjects →</a>
+                      <Link href="/subjects" className="text-indigo-500 hover:opacity-80 text-sm mt-1 inline-block">Browse subjects →</Link>
                     </div>
                   )}
                 </div>
@@ -673,7 +671,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                         {role === userCommunity && <span className="text-xs text-indigo-500 ml-auto">Yours</span>}
                       </div>
                       <p className="app-text-muted text-xs">{members.length} {members.length === 1 ? "member" : "members"}</p>
-                    </a>
+                    </Link>
                   ))}
                 </div>
               </div>
