@@ -301,6 +301,26 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
               className="h-9 w-9 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <Search className="h-5 w-5" />
             </button>
+            <Link href="/messages"
+              className="hidden md:flex h-9 w-9 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+              <MessageCircle className="h-5 w-5" />
+            </Link>
+            <Link href="/messages"
+              className="hidden md:flex h-9 w-9 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+              <MessageCircle className="h-5 w-5" />
+            </Link>
+            <Link href="/messages"
+              className="hidden md:flex h-9 w-9 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+              <MessageCircle className="h-5 w-5" />
+            </Link>
+            <Link href="/messages"
+              className="hidden md:flex h-9 w-9 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+              <MessageCircle className="h-5 w-5" />
+            </Link>
+            <Link href="/messages"
+              className="hidden md:flex h-9 w-9 items-center justify-center rounded-full hover:opacity-80 app-text-muted">
+              <MessageCircle className="h-5 w-5" />
+            </Link>
             <NotificationsPanel userId={user.id} />
             <Link href="/settings"
               className="h-9 w-9 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
