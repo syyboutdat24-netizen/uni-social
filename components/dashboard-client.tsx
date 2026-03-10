@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, useCallback } from "react"
-import { Home, Users, UserPlus, Bell, User, Search, MessageCircle, UserCheck, Heart, Send, GraduationCap, Menu, X, Info, Calendar, Users as UsersIcon, BookOpen, ChevronDown, ChevronRight } from "lucide-react"
+import { Home, Users, UserPlus, Bell, User, Search, MessageCircle, UserCheck, Heart, Send, GraduationCap, Menu, X, Info, Calendar, Users as UsersIcon, BookOpen, ChevronDown, ChevronRight, ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 
@@ -91,6 +91,9 @@ const Badge = ({ badgeRole }: { badgeRole: string | null | undefined }) => {
   if (!getBadge(badgeRole)) return null
   return <img src="/verified.png" title={badgeRole ?? ""} className="w-4 h-4 inline-block" />
 }
+
+const isStaff = (badgeRole: string | null | undefined) =>
+  ["Founder", "Admin", "Moderator"].includes(badgeRole ?? "")
 
 export function DashboardClient({ user, profile, profiles, connections, posts: initialPosts, likes: initialLikes, replies: initialReplies, subjectMemberships, signOut }: DashboardClientProps) {
   const [activeTab, setActiveTab] = useState<"home" | "friends" | "connections" | "community">("home")
@@ -313,13 +316,27 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                   <p className="text-xs app-text-muted uppercase tracking-wider font-semibold">Menu</p>
                 </div>
                 <div className="flex-1 p-4 space-y-2">
+
+                  {/* Admin Panel link — staff only */}
+                  {isStaff(profile?.badge_role) && (
+                    <a href="/admin"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors">
+                      <div className="w-8 h-8 rounded-lg bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center flex-shrink-0">
+                        <ShieldCheck className="h-4 w-4 text-yellow-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-yellow-500">Admin Panel</p>
+                        <p className="text-xs app-text-muted">Manage users & posts</p>
+                      </div>
+                    </a>
+                  )}
+
                   <div className="mb-4">
                     <div className="flex items-center gap-2 px-2 py-2 mb-1">
                       <UsersIcon className="h-4 w-4 text-indigo-500" />
                       <p className="text-sm font-semibold app-text">Communities</p>
                     </div>
 
-                    {/* Program community link */}
                     {profile?.role && (
                       <a href={`/community/${encodeURIComponent(profile.role)}`}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors text-left">
@@ -333,7 +350,6 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                       </a>
                     )}
 
-                    {/* Subject community links */}
                     {subjectMemberships.map(subject => (
                       <a key={subject} href={`/community/${encodeURIComponent(subject)}`}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:opacity-80 transition-colors">

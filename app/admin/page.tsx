@@ -3,13 +3,22 @@ import { redirect } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
 
-const ADMIN_IDS = ['3d83119d-1995-46df-9a9f-e975832c8fc3'];
+const ALLOWED_BADGE_ROLES = ['Founder', 'Admin', 'Moderator'];
 
 export default async function AdminPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-  if (!ADMIN_IDS.includes(user.id)) redirect("/dashboard");
+
+  const { data: currentProfile } = await supabase
+    .from("profiles")
+    .select("badge_role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!currentProfile?.badge_role || !ALLOWED_BADGE_ROLES.includes(currentProfile.badge_role)) {
+    redirect("/dashboard");
+  }
 
   const { data: profiles } = await supabase
     .from("profiles")
