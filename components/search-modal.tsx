@@ -14,9 +14,9 @@ const ALL_COMMUNITIES = [
 ]
 
 const EVENTS = [
-  { title: "Career Fair 2026", date: "Mar 15 • 10:00 AM", slug: "career-fair" },
-  { title: "Study Group", date: "Mar 20 • 2:00 PM", slug: "study-group" },
-  { title: "Sports Tournament", date: "Mar 25 • 9:00 AM", slug: "sports-tournament" },
+  { title: "Career Fair 2026", date: "Mar 15 - 10:00 AM", slug: "career-fair" },
+  { title: "Study Group", date: "Mar 20 - 2:00 PM", slug: "study-group" },
+  { title: "Sports Tournament", date: "Mar 25 - 9:00 AM", slug: "sports-tournament" },
 ]
 
 interface SearchResult {
@@ -60,12 +60,12 @@ export function SearchModal({ open, onClose, currentUserId }: SearchModalProps) 
         .from("profiles")
         .select("id, full_name, avatar_url, role, bio")
         .neq("id", currentUserId)
-        .or(`full_name.ilike.%${q}%,bio.ilike.%${q}%,role.ilike.%${q}%`)
+        .or("full_name.ilike.%" + q + "%,bio.ilike.%" + q + "%,role.ilike.%" + q + "%")
         .limit(5),
       supabase
         .from("posts")
         .select("id, content, user_id, profiles:profiles!user_id(full_name)")
-        .ilike("content", `%${q}%`)
+        .ilike("content", "%" + q + "%")
         .limit(5),
     ])
 
@@ -83,29 +83,29 @@ export function SearchModal({ open, onClose, currentUserId }: SearchModalProps) 
         id: u.id,
         title: u.full_name ?? "Student",
         subtitle: u.role ?? undefined,
-        href: `/user/${u.id}`,
+        href: "/user/" + u.id,
         avatar_url: u.avatar_url,
       })),
       ...(posts ?? []).map(p => ({
         type: "post" as const,
         id: p.id,
-        title: (p.content as string).slice(0, 80) + ((p.content as string).length > 80 ? "…" : ""),
-        subtitle: `by ${(p.profiles as any)?.full_name ?? "Student"}`,
-        href: `/dashboard`,
+        title: (p.content as string).slice(0, 80) + ((p.content as string).length > 80 ? "..." : ""),
+        subtitle: "by " + ((p.profiles as any)?.full_name ?? "Student"),
+        href: "/dashboard",
       })),
       ...matchedCommunities.map(c => ({
         type: "community" as const,
         id: c,
         title: c,
         subtitle: Object.keys(PROGRAM_SUBJECTS).includes(c) ? "Program Community" : "Subject Community",
-        href: `/community/${encodeURIComponent(c)}`,
+        href: "/community/" + encodeURIComponent(c),
       })),
       ...matchedEvents.map(e => ({
         type: "event" as const,
         id: e.slug,
         title: e.title,
         subtitle: e.date,
-        href: `/dashboard`,
+        href: "/dashboard",
       })),
     ]
 
@@ -136,21 +136,21 @@ export function SearchModal({ open, onClose, currentUserId }: SearchModalProps) 
 
   if (!open) return null
 
-  const icons = {
+  const icons: Record<string, JSX.Element> = {
     user: <User className="h-4 w-4" />,
     post: <FileText className="h-4 w-4" />,
     community: <Users className="h-4 w-4" />,
     event: <Calendar className="h-4 w-4" />,
   }
 
-  const typeColors = {
+  const typeColors: Record<string, string> = {
     user: "text-indigo-400",
     post: "text-emerald-400",
     community: "text-violet-400",
     event: "text-amber-400",
   }
 
-  const typeLabels = {
+  const typeLabels: Record<string, string> = {
     user: "User",
     post: "Post",
     community: "Community",
@@ -182,7 +182,7 @@ export function SearchModal({ open, onClose, currentUserId }: SearchModalProps) 
         {results.length > 0 && (
           <div className="max-h-[60vh] overflow-y-auto py-2">
             {results.map((result, i) => (
-              
+              <a
                 key={result.type + "-" + result.id}
                 href={result.href}
                 onClick={onClose}
@@ -219,7 +219,7 @@ export function SearchModal({ open, onClose, currentUserId }: SearchModalProps) 
 
         {query && !loading && results.length === 0 && (
           <div className="px-4 py-10 text-center">
-            <p className="app-text-muted text-sm">No results for "<span className="app-text">{query}</span>"</p>
+            <p className="app-text-muted text-sm">No results for &quot;<span className="app-text">{query}</span>&quot;</p>
           </div>
         )}
 
@@ -232,7 +232,7 @@ export function SearchModal({ open, onClose, currentUserId }: SearchModalProps) 
                 { label: "Messages", href: "/messages", icon: <User className="h-4 w-4" /> },
                 { label: "Subjects", href: "/subjects", icon: <Users className="h-4 w-4" /> },
               ].map(link => (
-                
+                <a
                   key={link.href}
                   href={link.href}
                   onClick={onClose}
@@ -246,8 +246,8 @@ export function SearchModal({ open, onClose, currentUserId }: SearchModalProps) 
               ))}
             </div>
             <p className="text-xs app-text-muted mt-4 px-1">
-              <kbd className="px-1.5 py-0.5 rounded app-input-bg border app-border text-xs">↑↓</kbd> navigate &nbsp;
-              <kbd className="px-1.5 py-0.5 rounded app-input-bg border app-border text-xs">↵</kbd> open &nbsp;
+              <kbd className="px-1.5 py-0.5 rounded app-input-bg border app-border text-xs">up/down</kbd> navigate &nbsp;
+              <kbd className="px-1.5 py-0.5 rounded app-input-bg border app-border text-xs">enter</kbd> open &nbsp;
               <kbd className="px-1.5 py-0.5 rounded app-input-bg border app-border text-xs">esc</kbd> close
             </p>
           </div>
