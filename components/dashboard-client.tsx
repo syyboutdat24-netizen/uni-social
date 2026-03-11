@@ -69,6 +69,7 @@ interface Reply {
   id: string
   user_id: string
   post_id: string
+  parent_reply_id: string | null
   content: string
   created_at: string
   profiles: {
@@ -98,6 +99,128 @@ const Badge = ({ badgeRole }: { badgeRole: string | null | undefined }) => {
 
 const isStaff = (badgeRole: string | null | undefined) =>
   ["Founder", "Admin", "Moderator"].includes(badgeRole ?? "")
+
+interface ThreadedRepliesProps {
+  postId: string
+  replies: Reply[]
+  parentId: string | null
+  depth: number
+  currentUserId: string
+  currentProfile: Profile | null
+  replyInputs: Record<string, string>
+  setReplyInputs: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  showReplyInput: Record<string, boolean>
+  setShowReplyInput: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
+  handleReply: (postId: string, parentReplyId: string | null) => Promise<void>
+}
+
+function ThreadedReplies({
+  postId, replies, parentId, depth,
+  currentUserId, currentProfile,
+  replyInputs, setReplyInputs,
+  showReplyInput, setShowReplyInput,
+  handleReply,
+}: ThreadedRepliesProps) {
+  const [expanded, setExpanded] = useState(depth === 0)
+  const children = replies.filter(r => r.parent_reply_id === parentId)
+  if (children.length === 0) return null
+
+  const PREVIEW_COUNT = 1
+  const shouldCollapse = depth === 0 && children.length > PREVIEW_COUNT
+  const visible = shouldCollapse && !expanded ? children.slice(0, PREVIEW_COUNT) : children
+
+  return (
+    <div className={cn("mt-3 space-y-2", depth > 0 ? "pl-3 border-l border-zinc-700" : "pl-0")}>
+      {depth === 0 && children.length > 0 && (
+        <div className="pt-3 border-t app-border" />
+      )}
+      {visible.map((reply) => (
+        <div key={reply.id} className={cn("flex gap-2.5", reply.id.startsWith("temp-") && "opacity-70")}>
+          <Link href={`/user/${reply.user_id}`} className="flex-shrink-0 mt-0.5">
+            <div className={cn("rounded-full bg-indigo-600 overflow-hidden hover:opacity-80", depth === 0 ? "w-8 h-8" : "w-6 h-6")}>
+              <img src={reply.profiles?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
+            </div>
+          </Link>
+          <div className="flex-1 min-w-0">
+            <div className="app-input-bg rounded-2xl px-3 py-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <Link href={`/user/${reply.user_id}`} className="font-semibold text-xs hover:underline app-text">
+                  {reply.profiles?.full_name ?? "Student"}
+                </Link>
+                {reply.profiles?.role && <span className="text-xs app-text-muted">({reply.profiles.role})</span>}
+                <Badge badgeRole={reply.profiles?.badge_role} />
+              </div>
+              <p className="app-text text-sm leading-relaxed">{reply.content}</p>
+            </div>
+            <div className="flex items-center gap-3 mt-1 ml-1">
+              <span className="text-xs app-text-muted">{formatTime(reply.created_at)}</span>
+              {depth < 4 && (
+                <button
+                  onClick={() => setShowReplyInput(prev => ({ ...prev, [reply.id]: !prev[reply.id] }))}
+                  className="text-xs text-indigo-400 hover:opacity-80 font-medium"
+                >
+                  Reply
+                </button>
+              )}
+            </div>
+
+            {/* Reply input for this reply */}
+            {showReplyInput[reply.id] && (
+              <div className="mt-2 flex gap-2">
+                <div className="w-6 h-6 rounded-full bg-indigo-600 overflow-hidden flex-shrink-0">
+                  <img src={currentProfile?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
+                </div>
+                <input
+                  value={replyInputs[reply.id] ?? ""}
+                  onChange={e => setReplyInputs(prev => ({ ...prev, [reply.id]: e.target.value }))}
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleReply(postId, reply.id) } }}
+                  placeholder={`Reply to ${reply.profiles?.full_name ?? "Student"}...`}
+                  autoFocus
+                  className="flex-1 app-input-bg app-text rounded-full px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <button
+                  onClick={() => handleReply(postId, reply.id)}
+                  disabled={!replyInputs[reply.id]?.trim()}
+                  className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-2.5 py-1.5 rounded-full"
+                >
+                  <Send className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+
+            {/* Nested replies */}
+            <ThreadedReplies
+              postId={postId}
+              replies={replies}
+              parentId={reply.id}
+              depth={depth + 1}
+              currentUserId={currentUserId}
+              currentProfile={currentProfile}
+              replyInputs={replyInputs}
+              setReplyInputs={setReplyInputs}
+              showReplyInput={showReplyInput}
+              setShowReplyInput={setShowReplyInput}
+              handleReply={handleReply}
+            />
+          </div>
+        </div>
+      ))}
+
+      {/* Show more / less toggle */}
+      {shouldCollapse && (
+        <button
+          onClick={() => setExpanded(v => !v)}
+          className="text-xs text-indigo-400 hover:opacity-80 font-medium ml-0.5 flex items-center gap-1"
+        >
+          {expanded
+            ? <><ChevronDown className="h-3 w-3 rotate-180" /> Hide replies</>
+            : <><ChevronRight className="h-3 w-3" /> View {children.length - PREVIEW_COUNT} more {children.length - PREVIEW_COUNT === 1 ? "reply" : "replies"}</>
+          }
+        </button>
+      )}
+    </div>
+  )
+}
 
 export function DashboardClient({ user, profile, profiles, connections, posts: initialPosts, likes: initialLikes, replies: initialReplies, subjectMemberships, signOut }: DashboardClientProps) {
   const [activeTab, setActiveTab] = useState<"home" | "friends" | "connections" | "community" | "messages">("home")
@@ -201,14 +324,16 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
     }
   }
 
-  const handleReply = async (postId: string) => {
-    const content = replyInputs[postId]?.trim()
+  const handleReply = async (postId: string, parentReplyId: string | null = null) => {
+    const inputKey = parentReplyId ?? postId
+    const content = replyInputs[inputKey]?.trim()
     if (!content) return
-    setReplyInputs(prev => ({ ...prev, [postId]: "" }))
+    setReplyInputs(prev => ({ ...prev, [inputKey]: "" }))
     const optimistic: Reply = {
       id: `temp-${Date.now()}`,
       user_id: user.id,
       post_id: postId,
+      parent_reply_id: parentReplyId,
       content,
       created_at: new Date().toISOString(),
       profiles: {
@@ -219,18 +344,38 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
       }
     }
     setReplies(prev => [...prev, optimistic])
-    const { data } = await supabase.from("replies").insert({ user_id: user.id, post_id: postId, content }).select().single()
+    const { data } = await supabase.from("replies").insert({
+      user_id: user.id,
+      post_id: postId,
+      parent_reply_id: parentReplyId,
+      content
+    }).select().single()
     if (data) setReplies(prev => prev.map(r => r.id === optimistic.id ? { ...data, profiles: optimistic.profiles } : r))
-    // Notify post owner
-    const post = posts.find(p => p.id === postId)
-    if (post) {
-      await sendNotification({
-        toUserId: post.user_id,
-        fromUserId: user.id,
-        type: "comment",
-        message: `${profile?.full_name ?? "Someone"} replied to your post`,
-        postId,
-      })
+
+    // Notify post owner (if replying to post directly)
+    if (!parentReplyId) {
+      const post = posts.find(p => p.id === postId)
+      if (post) {
+        await sendNotification({
+          toUserId: post.user_id,
+          fromUserId: user.id,
+          type: "comment",
+          message: `${profile?.full_name ?? "Someone"} replied to your post`,
+          postId,
+        })
+      }
+    } else {
+      // Notify the parent reply author
+      const parentReply = replies.find(r => r.id === parentReplyId)
+      if (parentReply) {
+        await sendNotification({
+          toUserId: parentReply.user_id,
+          fromUserId: user.id,
+          type: "comment",
+          message: `${profile?.full_name ?? "Someone"} replied to your comment`,
+          postId,
+        })
+      }
     }
   }
 
@@ -561,19 +706,21 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
               <div className="space-y-4">
                 {posts.map((post) => {
                   const postReplies = getRepliesForPost(post.id)
+                  const topLevelReplies = postReplies.filter(r => !r.parent_reply_id)
                   const liked = isLiked(post.id)
                   const likeCount = getLikeCount(post.id)
                   return (
                     <div key={post.id} className={cn("app-surface rounded-2xl p-5 border app-border", post.id.startsWith("temp-") && "opacity-70")}>
+                      {/* Post header */}
                       <div className="flex items-center gap-3 mb-3">
-                        <a href={`/user/${post.user_id}`}>
+                        <Link href={`/user/${post.user_id}`}>
                           <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0 hover:opacity-80">
                             <img src={post.profiles?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
                           </div>
-                        </a>
+                        </Link>
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <a href={`/user/${post.user_id}`} className="font-semibold text-sm hover:underline app-text">{post.profiles?.full_name ?? "Student"}</a>
+                            <Link href={`/user/${post.user_id}`} className="font-semibold text-sm hover:underline app-text">{post.profiles?.full_name ?? "Student"}</Link>
                             {post.profiles?.role && <span className="text-xs app-text-muted">({post.profiles.role})</span>}
                             <Badge badgeRole={post.profiles?.badge_role} />
                           </div>
@@ -583,6 +730,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
 
                       <p className="app-text text-sm leading-relaxed mb-4">{post.content}</p>
 
+                      {/* Like + Reply actions */}
                       <div className="flex items-center gap-4 border-t app-border pt-3">
                         <button onClick={() => handleLike(post.id)}
                           className={cn("flex items-center gap-2 text-sm transition-colors", liked ? "text-red-400" : "app-text-muted hover:text-red-400")}>
@@ -596,31 +744,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                         </button>
                       </div>
 
-                      {postReplies.length > 0 && (
-                        <div className="mt-4 space-y-3 pl-4 border-l-2 app-border">
-                          {postReplies.map((reply) => (
-                            <div key={reply.id} className={cn("flex gap-3", reply.id.startsWith("temp-") && "opacity-70")}>
-                              <a href={`/user/${reply.user_id}`}>
-                                <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0 hover:opacity-80">
-                                  <img src={reply.profiles?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
-                                </div>
-                              </a>
-                              <div className="flex-1">
-                                <div className="app-input-bg rounded-2xl px-4 py-2">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <a href={`/user/${reply.user_id}`} className="font-semibold text-sm hover:underline app-text">{reply.profiles?.full_name ?? "Student"}</a>
-                                    {reply.profiles?.role && <span className="text-xs app-text-muted">({reply.profiles.role})</span>}
-                                    <Badge badgeRole={reply.profiles?.badge_role} />
-                                  </div>
-                                  <p className="app-text text-sm leading-relaxed">{reply.content}</p>
-                                </div>
-                                <p className="text-xs app-text-muted mt-1 ml-2">{formatTime(reply.created_at)}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
+                      {/* Reply input for post */}
                       {showReplyInput[post.id] && (
                         <div className="mt-3 pt-3 border-t app-border">
                           <div className="flex gap-2">
@@ -630,16 +754,33 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
                             <input
                               value={replyInputs[post.id] ?? ""}
                               onChange={e => setReplyInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
-                              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleReply(post.id) } }}
+                              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleReply(post.id, null) } }}
                               placeholder="Write a reply..."
                               className="flex-1 app-input-bg app-text rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                             />
-                            <button onClick={() => handleReply(post.id)} disabled={!replyInputs[post.id]?.trim()}
+                            <button onClick={() => handleReply(post.id, null)} disabled={!replyInputs[post.id]?.trim()}
                               className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-3 py-2 rounded-full text-sm">
                               <Send className="h-4 w-4" />
                             </button>
                           </div>
                         </div>
+                      )}
+
+                      {/* Threaded replies */}
+                      {topLevelReplies.length > 0 && (
+                        <ThreadedReplies
+                          postId={post.id}
+                          replies={postReplies}
+                          parentId={null}
+                          depth={0}
+                          currentUserId={user.id}
+                          currentProfile={profile}
+                          replyInputs={replyInputs}
+                          setReplyInputs={setReplyInputs}
+                          showReplyInput={showReplyInput}
+                          setShowReplyInput={setShowReplyInput}
+                          handleReply={handleReply}
+                        />
                       )}
                     </div>
                   )

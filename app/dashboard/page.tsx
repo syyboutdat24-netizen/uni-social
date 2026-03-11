@@ -37,7 +37,7 @@ export default async function DashboardPage() {
       ? supabase.from("likes").select("id, user_id, post_id").in("post_id", postIds)
       : Promise.resolve({ data: [] }),
     postIds.length > 0
-      ? supabase.from("replies").select("id, user_id, post_id, content, created_at").in("post_id", postIds).order("created_at", { ascending: true })
+      ? supabase.from("replies").select("id, user_id, post_id, parent_reply_id, content, created_at").in("post_id", postIds).order("created_at", { ascending: true })
       : Promise.resolve({ data: [] }),
   ]);
 
