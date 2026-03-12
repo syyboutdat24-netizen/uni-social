@@ -92,12 +92,14 @@ export default function MessagesClient({
     if ((!content && !imageFile) || sending) return
 
     const optimisticId = `temp-${Date.now()}`
+    const localPreview = imagePreview // save before clearing
+
     const optimistic: Message = {
       id: optimisticId,
       sender_id: currentUserId,
       receiver_id: otherId,
       content: content || "",
-      image_url: imagePreview,
+      image_url: localPreview,
       created_at: new Date().toISOString(),
     }
 
@@ -116,7 +118,9 @@ export default function MessagesClient({
         .from("message-images")
         .upload(path, imageFile, { upsert: true })
 
-      if (!uploadError && uploadData) {
+      if (uploadError) {
+        console.error("Image upload failed:", uploadError.message)
+      } else if (uploadData) {
         const { data: urlData } = supabase.storage
           .from("message-images")
           .getPublicUrl(uploadData.path)
@@ -158,7 +162,7 @@ export default function MessagesClient({
   }
 
   return (
-    <div className="fixed inset-0 w-full app-bg app-text flex flex-col">
+    <div className="fixed inset-0 w-full app-bg app-text flex flex-col" style={{ top: 0, zIndex: 50 }}>
 
       {/* Top bar — flush to top */}
       <div className="flex-shrink-0 app-surface px-4 py-3 flex items-center gap-3 border-b app-border shadow-sm">
