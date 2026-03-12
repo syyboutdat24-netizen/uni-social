@@ -2,8 +2,12 @@ export function isAllowedEmail(email: string): boolean {
   const domain = process.env.ALLOWED_EMAIL_DOMAIN?.toLowerCase().trim();
   const normalized = email.toLowerCase().trim();
 
-  // Always allow this specific email regardless of domain
-  if (normalized === "shumorikawa2020@gmail.com") return true;
+  // Always allow these specific emails regardless of domain
+  const allowedEmails = [
+    "shumorikawa2020@gmail.com",
+    "syyboutdat24@gmail.com",
+  ];
+  if (allowedEmails.includes(normalized)) return true;
 
   if (!domain) return true;
 
