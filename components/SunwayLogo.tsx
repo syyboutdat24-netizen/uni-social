@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 
 export function SunwayLogo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
-  const h = { sm: "h-8", md: "h-12", lg: "h-16" }[size]
+  const h = { sm: "h-16 md:h-10", md: "h-20 md:h-14", lg: "h-24 md:h-18" }[size]
   const [isDark, setIsDark] = useState(true)
 
   useEffect(() => {
