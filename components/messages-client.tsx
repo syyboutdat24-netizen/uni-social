@@ -141,9 +141,8 @@ export default function MessagesClient({
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
       setInput(content)
     } else if (data) {
-      // Preserve image_url from optimistic if DB row doesn't have it yet
       setMessages((prev) =>
-        prev.map((m) => m.id === optimisticId ? { ...data, image_url: data.image_url ?? localPreview } : m)
+        prev.map((m) => m.id === optimisticId ? { ...data } : m)
       )
     }
 
@@ -163,10 +162,10 @@ export default function MessagesClient({
   }
 
   return (
-    <div className="app-bg app-text flex flex-col" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 }}>
+    <div className="fixed inset-0 w-full app-bg app-text flex flex-col" style={{ top: 0, zIndex: 50 }}>
 
-      {/* Top bar — flush to top */}
-      <div className="flex-shrink-0 app-surface px-4 py-3 flex items-center gap-3 border-b app-border shadow-sm">
+      {/* Top bar */}
+      <div className="flex-shrink-0 app-surface px-3 py-2 flex items-center gap-2 border-b app-border">
         <a href="/messages" className="app-text-muted hover:opacity-80 transition-opacity">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
