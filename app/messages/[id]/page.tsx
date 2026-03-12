@@ -17,7 +17,7 @@ export default async function MessagePage({ params }: { params: Promise<{ id: st
     supabase.from("profiles").select("id, full_name, avatar_url").eq("id", otherId).maybeSingle(),
     supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
     supabase.from("messages")
-      .select("id, sender_id, receiver_id, content, created_at")
+      .select("id, sender_id, receiver_id, content, image_url, created_at")
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherId}),and(sender_id.eq.${otherId},receiver_id.eq.${user.id})`)
       .order("created_at", { ascending: true })
       .limit(100),
