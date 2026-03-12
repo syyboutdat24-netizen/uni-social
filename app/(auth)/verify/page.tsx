@@ -14,9 +14,9 @@ export default async function VerifyPage({ searchParams }: Props) {
   return (
     <>
       <div className="mb-8 text-center">
-        <a href="/login" className="text-2xl font-bold">
-          <span className="text-indigo-600">Sunway</span>
-          <span className="text-zinc-900 dark:text-zinc-100"> Connect</span>
+        <a href="/login" className="inline-block">
+          <img src="/logo-dark.png" alt="Sunway Connect" className="h-10 w-auto object-contain mx-auto hidden dark:block" />
+          <img src="/logo-light.png" alt="Sunway Connect" className="h-10 w-auto object-contain mx-auto block dark:hidden" />
         </a>
         <h2 className="mt-6 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
           Verify your email
