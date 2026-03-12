@@ -44,6 +44,8 @@ export default function MessagesClient({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
+  // Real-time: ONLY listen for messages from the other person
+  // Never handle our own sends here — those stay via optimistic update
   useEffect(() => {
     const channel = supabase
       .channel("messages-realtime")
@@ -57,8 +59,8 @@ export default function MessagesClient({
         },
         (payload) => {
           const newMsg = payload.new as Message
-          // Only add messages FROM the other person — our own are handled optimistically
-          if (newMsg.sender_id === otherId) {
+          // Strictly ignore anything we sent
+          if (newMsg.sender_id !== currentUserId) {
             setMessages((prev) => {
               if (prev.some(m => m.id === newMsg.id)) return prev
               return [...prev, newMsg]
@@ -85,31 +87,32 @@ export default function MessagesClient({
       content,
       created_at: new Date().toISOString(),
     }
+
+    // Add optimistic message and clear input immediately
     setMessages((prev) => [...prev, optimistic])
     setInput("")
     setSending(true)
 
-    try {
-      const { data, error } = await supabase.from("messages").insert({
-        sender_id: currentUserId,
-        receiver_id: otherId,
-        content,
-        read: false,
-      }).select().single()
+    const { data, error } = await supabase.from("messages").insert({
+      sender_id: currentUserId,
+      receiver_id: otherId,
+      content,
+      read: false,
+    }).select().single()
 
-      if (error) throw error
-
-      // Replace optimistic with real message
-      setMessages((prev) =>
-        prev.map((m) => (m.id === optimisticId ? data : m))
-      )
-    } catch (err) {
-      console.error("Failed to send:", err)
+    if (error) {
+      // Only remove on actual error
+      console.error("Failed to send:", error)
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
       setInput(content)
-    } finally {
-      setSending(false)
+    } else if (data) {
+      // Swap optimistic with real row
+      setMessages((prev) =>
+        prev.map((m) => m.id === optimisticId ? { ...data } : m)
+      )
     }
+
+    setSending(false)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
