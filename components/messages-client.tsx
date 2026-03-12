@@ -100,13 +100,14 @@ export default function MessagesClient({
       read: false,
     }).select().single()
 
+    console.log("INSERT result:", { data, error })
+
     if (error) {
-      // Only remove on actual error
       console.error("Failed to send:", error)
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
       setInput(content)
     } else if (data) {
-      // Swap optimistic with real row
+      console.log("Replacing optimistic with:", data)
       setMessages((prev) =>
         prev.map((m) => m.id === optimisticId ? { ...data } : m)
       )
