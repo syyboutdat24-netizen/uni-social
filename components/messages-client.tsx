@@ -21,6 +21,7 @@ interface Profile {
 
 interface MessagesClientProps {
   currentUserId: string
+  senderName: string
   otherId: string
   otherProfile: Profile | null
   initialMessages: Message[]
@@ -28,6 +29,7 @@ interface MessagesClientProps {
 
 export default function MessagesClient({
   currentUserId,
+  senderName,
   otherId,
   otherProfile,
   initialMessages,
