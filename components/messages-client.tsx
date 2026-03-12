@@ -164,8 +164,8 @@ export default function MessagesClient({
   return (
     <div className="fixed inset-0 w-full app-bg app-text flex flex-col" style={{ top: 0, zIndex: 50 }}>
 
-      {/* Top bar */}
-      <div className="flex-shrink-0 app-surface px-3 py-2 flex items-center gap-2 border-b app-border">
+      {/* Top bar — flush to top */}
+      <div className="flex-shrink-0 app-surface px-3 py-1.5 flex items-center gap-2 border-b app-border">
         <a href="/messages" className="app-text-muted hover:opacity-80 transition-opacity">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
