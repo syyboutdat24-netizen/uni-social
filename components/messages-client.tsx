@@ -121,7 +121,7 @@ export default function MessagesClient({
           {otherProfile?.full_name ?? "Student"}
         </a>
         <a href="/dashboard" className="ml-auto">
-          <SunwayLogo className="h-6" />
+          <SunwayLogo size="sm" />
         </a>
       </div>
 

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { VerifyForm } from "@/app/(auth)/verify/VerifyForm";
+import { SunwayLogo } from "@/components/SunwayLogo";
 
 interface Props {
   searchParams: Promise<{ email?: string }>;
@@ -14,9 +15,8 @@ export default async function VerifyPage({ searchParams }: Props) {
   return (
     <>
       <div className="mb-8 text-center">
-        <a href="/login" className="inline-block">
-          <img src="/logo-dark.png" alt="Sunway Connect" className="h-10 w-auto object-contain mx-auto hidden dark:block" />
-          <img src="/logo-light.png" alt="Sunway Connect" className="h-10 w-auto object-contain mx-auto block dark:hidden" />
+        <a href="/login" className="inline-flex justify-center mb-2">
+          <SunwayLogo size="lg" />
         </a>
         <h2 className="mt-6 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
           Verify your email

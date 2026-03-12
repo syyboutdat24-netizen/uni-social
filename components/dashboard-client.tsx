@@ -333,7 +333,7 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
               {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
             <h1 className="text-lg font-bold whitespace-nowrap">
-              <SunwayLogo className="h-7" />
+              <SunwayLogo size="sm" />
             </h1>
           </div>
 
