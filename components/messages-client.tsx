@@ -57,8 +57,12 @@ export default function MessagesClient({
         },
         (payload) => {
           const newMsg = payload.new as Message
+          // Only add messages FROM the other person — our own are handled optimistically
           if (newMsg.sender_id === otherId) {
-            setMessages((prev) => [...prev, newMsg])
+            setMessages((prev) => {
+              if (prev.some(m => m.id === newMsg.id)) return prev
+              return [...prev, newMsg]
+            })
           }
         }
       )
@@ -73,8 +77,9 @@ export default function MessagesClient({
     const content = input.trim()
     if (!content || sending) return
 
+    const optimisticId = `temp-${Date.now()}`
     const optimistic: Message = {
-      id: `temp-${Date.now()}`,
+      id: optimisticId,
       sender_id: currentUserId,
       receiver_id: otherId,
       content,
@@ -94,12 +99,13 @@ export default function MessagesClient({
 
       if (error) throw error
 
+      // Replace optimistic with real message
       setMessages((prev) =>
-        prev.map((m) => (m.id === optimistic.id ? data : m))
+        prev.map((m) => (m.id === optimisticId ? data : m))
       )
     } catch (err) {
       console.error("Failed to send:", err)
-      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id))
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
       setInput(content)
     } finally {
       setSending(false)
