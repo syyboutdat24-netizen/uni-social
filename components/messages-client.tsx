@@ -141,8 +141,9 @@ export default function MessagesClient({
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
       setInput(content)
     } else if (data) {
+      // Preserve image_url from optimistic if DB row doesn't have it yet
       setMessages((prev) =>
-        prev.map((m) => m.id === optimisticId ? { ...data } : m)
+        prev.map((m) => m.id === optimisticId ? { ...data, image_url: data.image_url ?? localPreview } : m)
       )
     }
 
@@ -162,7 +163,7 @@ export default function MessagesClient({
   }
 
   return (
-    <div className="fixed inset-0 w-full app-bg app-text flex flex-col" style={{ top: 0, zIndex: 50 }}>
+    <div className="app-bg app-text flex flex-col" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 }}>
 
       {/* Top bar — flush to top */}
       <div className="flex-shrink-0 app-surface px-4 py-3 flex items-center gap-3 border-b app-border shadow-sm">
