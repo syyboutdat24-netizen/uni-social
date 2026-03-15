@@ -137,7 +137,6 @@ export default function SettingsClient({ user, profile, notifSettings }: Setting
     setSaving(false)
     showSaved()
     // Refresh page so form reflects saved values
-    window.location.reload()
   }
 
   const saveNotifications = async () => {
