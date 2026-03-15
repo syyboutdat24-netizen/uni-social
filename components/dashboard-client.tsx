@@ -3,13 +3,15 @@
 import { useState, useMemo, useCallback, useEffect } from "react"
 import Link from "next/link"
 import { sendNotification } from "@/lib/notifications"
-import { Home, Users, UserPlus, Bell, User, Search, MessageCircle, UserCheck, Heart, Send, GraduationCap, Menu, X, Info, Calendar, Users as UsersIcon, BookOpen, ChevronDown, ChevronRight, ShieldCheck, Settings } from "lucide-react"
+import { Home, Users, UserPlus, Bell, User, Search, MessageCircle, UserCheck, Heart, Send, GraduationCap, Menu, X, Info, Calendar, Users as UsersIcon, BookOpen, ChevronDown, ChevronRight, ShieldCheck, Settings, Trash2, ImageIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { SearchModal } from "@/components/search-modal"
 import NotificationsPanel from "@/components/notifications-panel"
 import { SunwayLogo } from "@/components/SunwayLogo"
 import { PublicCommunitiesTab } from "@/components/PublicCommunitiesTab"
+import { MediaAttachment, MediaDisplay } from "@/components/MediaAttachment"
+import type { MediaFile } from "@/components/MediaAttachment"
 
 const supabase = createClient()
 
@@ -52,6 +54,8 @@ interface Post {
   id: string
   user_id: string
   content: string
+  media_url?: string | null
+  media_type?: string | null
   created_at: string
   profiles: {
     full_name: string | null
@@ -143,6 +147,8 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
   const [likes, setLikes] = useState<Like[]>(initialLikes)
   const [replies, setReplies] = useState<Reply[]>(initialReplies)
   const [newPostContent, setNewPostContent] = useState("")
+  const [postMedia, setPostMedia] = useState<MediaFile | null>(null)
+  const [postMediaUploading, setPostMediaUploading] = useState(false)
 
   const displayName = profile?.full_name || user.email.split("@")[0] || "Student"
   const initial = displayName[0].toUpperCase()
@@ -276,12 +282,16 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
 
   const handlePost = async () => {
     const content = newPostContent.trim()
-    if (!content) return
+    if (!content && !postMedia) return
+    const media = postMedia
     setNewPostContent("")
+    setPostMedia(null)
     const optimistic: Post = {
       id: `temp-${Date.now()}`,
       user_id: user.id,
-      content,
+      content: content || "",
+      media_url: media?.url ?? null,
+      media_type: media?.type ?? null,
       created_at: new Date().toISOString(),
       profiles: {
         full_name: profile?.full_name ?? null,
@@ -291,9 +301,12 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
       }
     }
     setPosts(prev => [optimistic, ...prev])
-    const { data } = await supabase.from("posts").insert({ user_id: user.id, content }).select().single()
+    const { data } = await supabase.from("posts").insert({
+      user_id: user.id, content: content || "",
+      media_url: media?.url ?? null,
+      media_type: media?.type ?? null,
+    }).select().single()
     if (data) setPosts(prev => prev.map(p => p.id === optimistic.id ? { ...data, profiles: optimistic.profiles } : p))
-    // Notify all friends about new post
     for (const friend of connectedProfiles) {
       await sendNotification({
         toUserId: friend.id,
@@ -303,6 +316,16 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
         postId: data?.id ?? null,
       })
     }
+  }
+
+  const deletePost = async (postId: string) => {
+    setPosts(prev => prev.filter(p => p.id !== postId))
+    await supabase.from("posts").delete().eq("id", postId)
+  }
+
+  const deleteReply = async (replyId: string) => {
+    setReplies(prev => prev.filter(r => r.id !== replyId))
+    await supabase.from("replies").delete().eq("id", replyId)
   }
 
   const ConnectionCard = ({ p }: { p: Profile }) => {
@@ -605,22 +628,33 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
           {activeTab === "home" && (
             <div className="mx-auto max-w-2xl px-4 py-6">
               <div className="app-surface rounded-2xl p-5 mb-6 border app-border">
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0">
                     <img src={profile?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
                   </div>
-                  <div className="flex-1 flex gap-2">
+                  <div className="flex-1">
                     <input
                       value={newPostContent}
                       onChange={e => setNewPostContent(e.target.value)}
                       onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handlePost() } }}
                       placeholder="Share something with your network..."
-                      className="flex-1 app-input-bg app-text rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full app-input-bg app-text rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                     />
-                    <button onClick={handlePost} disabled={!newPostContent.trim()}
-                      className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 rounded-full text-sm flex items-center gap-2">
-                      <Send className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center justify-between mt-2">
+                      <MediaAttachment
+                        current={postMedia}
+                        onAttach={setPostMedia}
+                        onRemove={() => setPostMedia(null)}
+                        uploading={postMediaUploading}
+                        setUploading={setPostMediaUploading}
+                        bucket="post-media"
+                        folder="posts"
+                      />
+                      <button onClick={handlePost} disabled={!newPostContent.trim() && !postMedia}
+                        className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 rounded-full text-sm flex items-center gap-2">
+                        <Send className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -649,8 +683,9 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
                       </div>
 
                       <p className="app-text text-sm leading-relaxed mb-4">{post.content}</p>
+                      {post.media_url && <MediaDisplay url={post.media_url} type={post.media_type ?? undefined} />}
 
-                      <div className="flex items-center gap-4 border-t app-border pt-3">
+                      <div className="flex items-center gap-4 border-t app-border pt-3 mt-4">
                         <button onClick={() => handleLike(post.id)}
                           className={cn("flex items-center gap-2 text-sm transition-colors", liked ? "text-red-400" : "app-text-muted hover:text-red-400")}>
                           <Heart className={cn("h-4 w-4", liked && "fill-red-400")} />
@@ -661,12 +696,18 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
                           <MessageCircle className="h-4 w-4" />
                           {postReplies.length} {postReplies.length === 1 ? "Reply" : "Replies"}
                         </button>
+                        {(post.user_id === user.id || ["Founder","Admin","Moderator"].includes(profile?.badge_role ?? "")) && (
+                          <button onClick={() => deletePost(post.id)}
+                            className="ml-auto flex items-center gap-1 text-xs text-red-400 hover:opacity-80 transition-colors">
+                            <Trash2 className="h-3.5 w-3.5" /> Delete
+                          </button>
+                        )}
                       </div>
 
                       {postReplies.length > 0 && (
                         <div className="mt-4 space-y-3 pl-4 border-l-2 app-border">
                           {postReplies.map((reply) => (
-                            <div key={reply.id} className={cn("flex gap-3", reply.id.startsWith("temp-") && "opacity-70")}>
+                            <div key={reply.id} className={cn("flex gap-3 group", reply.id.startsWith("temp-") && "opacity-70")}>
                               <a href={`/user/${reply.user_id}`}>
                                 <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0 hover:opacity-80">
                                   <img src={reply.profiles?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
@@ -681,7 +722,15 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
                                   </div>
                                   <p className="app-text text-sm leading-relaxed">{reply.content}</p>
                                 </div>
-                                <p className="text-xs app-text-muted mt-1 ml-2">{formatTime(reply.created_at)}</p>
+                                <div className="flex items-center gap-3 mt-1 ml-2">
+                                  <p className="text-xs app-text-muted">{formatTime(reply.created_at)}</p>
+                                  {(reply.user_id === user.id || ["Founder","Admin","Moderator"].includes(profile?.badge_role ?? "")) && (
+                                    <button onClick={() => deleteReply(reply.id)}
+                                      className="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:opacity-80 flex items-center gap-1 transition-opacity">
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           ))}

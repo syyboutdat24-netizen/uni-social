@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { Send, Hash, MessageCircle, BookOpen, Users, X, Plus, ChevronLeft, FileText, Menu, Settings, Trash2, Shield, ShieldCheck, Crown, Edit2, Check, AlertTriangle } from "lucide-react"
+import { MediaAttachment, MediaDisplay } from "@/components/MediaAttachment"
+import type { MediaFile } from "@/components/MediaAttachment"
 
 const supabase = createClient()
 
@@ -37,6 +39,8 @@ interface ForumPost {
   user_id: string
   title: string
   content: string
+  media_url?: string | null
+  media_type?: string | null
   created_at: string
   profiles: { full_name: string | null; avatar_url: string | null; badge_role: string | null } | null
 }
@@ -46,6 +50,8 @@ interface ForumReply {
   post_id: string
   user_id: string
   content: string
+  media_url?: string | null
+  media_type?: string | null
   created_at: string
   profiles: { full_name: string | null; avatar_url: string | null; badge_role: string | null } | null
 }
@@ -54,6 +60,8 @@ interface ChatMessage {
   id: string
   user_id: string
   content: string
+  media_url?: string | null
+  media_type?: string | null
   created_at: string
   profiles: { full_name: string | null; avatar_url: string | null; badge_role: string | null } | null
 }
@@ -63,6 +71,8 @@ interface Note {
   user_id: string
   title: string
   content: string
+  media_url?: string | null
+  media_type?: string | null
   created_at: string
   profiles: { full_name: string | null; avatar_url: string | null; badge_role: string | null } | null
 }
@@ -127,6 +137,8 @@ export default function CommunityClient({
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(initialChatMessages)
   const [chatInput, setChatInput] = useState("")
+  const [chatMedia, setChatMedia] = useState<MediaFile | null>(null)
+  const [chatMediaUploading, setChatMediaUploading] = useState(false)
   const chatBottomRef = useRef<HTMLDivElement>(null)
 
   // Forum state
@@ -136,13 +148,19 @@ export default function CommunityClient({
   const [showNewPost, setShowNewPost] = useState(false)
   const [newPostTitle, setNewPostTitle] = useState("")
   const [newPostContent, setNewPostContent] = useState("")
+  const [newPostMedia, setNewPostMedia] = useState<MediaFile | null>(null)
+  const [newPostMediaUploading, setNewPostMediaUploading] = useState(false)
   const [replyInput, setReplyInput] = useState("")
+  const [replyMedia, setReplyMedia] = useState<MediaFile | null>(null)
+  const [replyMediaUploading, setReplyMediaUploading] = useState(false)
 
   // Notes state
   const [notes, setNotes] = useState<Note[]>(initialNotes)
   const [showNewNote, setShowNewNote] = useState(false)
   const [newNoteTitle, setNewNoteTitle] = useState("")
   const [newNoteContent, setNewNoteContent] = useState("")
+  const [newNoteMedia, setNewNoteMedia] = useState<MediaFile | null>(null)
+  const [newNoteMediaUploading, setNewNoteMediaUploading] = useState(false)
   const [selectedNote, setSelectedNote] = useState<Note | null>(null)
 
   // Community settings state
@@ -182,16 +200,19 @@ export default function CommunityClient({
 
   const sendChat = async () => {
     const content = chatInput.trim()
-    if (!content) return
+    if (!content && !chatMedia) return
+    const media = chatMedia
     setChatInput("")
+    setChatMedia(null)
     const optimistic: ChatMessage = {
-      id: `temp-${Date.now()}`, user_id: user.id, content,
+      id: `temp-${Date.now()}`, user_id: user.id, content: content || "",
+      media_url: media?.url ?? null, media_type: media?.type ?? null,
       created_at: new Date().toISOString(),
       profiles: { full_name: profile?.full_name ?? null, avatar_url: profile?.avatar_url ?? null, badge_role: profile?.badge_role ?? null }
     }
     setChatMessages(prev => [...prev, optimistic])
     const { data } = await supabase.from("community_messages")
-      .insert({ community_slug: slug, user_id: user.id, content })
+      .insert({ community_slug: slug, user_id: user.id, content: content || "", media_url: media?.url ?? null, media_type: media?.type ?? null })
       .select().single()
     if (data) setChatMessages(prev => prev.map(m => m.id === optimistic.id ? { ...data, profiles: optimistic.profiles } : m))
   }
@@ -205,15 +226,17 @@ export default function CommunityClient({
     const title = newPostTitle.trim()
     const content = newPostContent.trim()
     if (!title || !content) return
-    setNewPostTitle(""); setNewPostContent(""); setShowNewPost(false)
+    const media = newPostMedia
+    setNewPostTitle(""); setNewPostContent(""); setShowNewPost(false); setNewPostMedia(null)
     const optimistic: ForumPost = {
       id: `temp-${Date.now()}`, user_id: user.id, title, content,
+      media_url: media?.url ?? null, media_type: media?.type ?? null,
       created_at: new Date().toISOString(),
       profiles: { full_name: profile?.full_name ?? null, avatar_url: profile?.avatar_url ?? null, badge_role: profile?.badge_role ?? null }
     }
     setForumPosts(prev => [optimistic, ...prev])
     const { data } = await supabase.from("community_posts")
-      .insert({ community_slug: slug, user_id: user.id, title, content })
+      .insert({ community_slug: slug, user_id: user.id, title, content, media_url: media?.url ?? null, media_type: media?.type ?? null })
       .select().single()
     if (data) setForumPosts(prev => prev.map(p => p.id === optimistic.id ? { ...data, profiles: optimistic.profiles } : p))
   }
@@ -226,16 +249,18 @@ export default function CommunityClient({
 
   const sendReply = async (postId: string) => {
     const content = replyInput.trim()
-    if (!content) return
-    setReplyInput("")
+    if (!content && !replyMedia) return
+    const media = replyMedia
+    setReplyInput(""); setReplyMedia(null)
     const optimistic: ForumReply = {
-      id: `temp-${Date.now()}`, post_id: postId, user_id: user.id, content,
+      id: `temp-${Date.now()}`, post_id: postId, user_id: user.id, content: content || "",
+      media_url: media?.url ?? null, media_type: media?.type ?? null,
       created_at: new Date().toISOString(),
       profiles: { full_name: profile?.full_name ?? null, avatar_url: profile?.avatar_url ?? null, badge_role: profile?.badge_role ?? null }
     }
     setForumReplies(prev => [...prev, optimistic])
     const { data } = await supabase.from("community_post_replies")
-      .insert({ post_id: postId, user_id: user.id, content })
+      .insert({ post_id: postId, user_id: user.id, content: content || "", media_url: media?.url ?? null, media_type: media?.type ?? null })
       .select().single()
     if (data) setForumReplies(prev => prev.map(r => r.id === optimistic.id ? { ...data, profiles: optimistic.profiles } : r))
   }
@@ -244,15 +269,17 @@ export default function CommunityClient({
     const title = newNoteTitle.trim()
     const content = newNoteContent.trim()
     if (!title || !content) return
-    setNewNoteTitle(""); setNewNoteContent(""); setShowNewNote(false)
+    const media = newNoteMedia
+    setNewNoteTitle(""); setNewNoteContent(""); setShowNewNote(false); setNewNoteMedia(null)
     const optimistic: Note = {
       id: `temp-${Date.now()}`, user_id: user.id, title, content,
+      media_url: media?.url ?? null, media_type: media?.type ?? null,
       created_at: new Date().toISOString(),
       profiles: { full_name: profile?.full_name ?? null, avatar_url: profile?.avatar_url ?? null, badge_role: profile?.badge_role ?? null }
     }
     setNotes(prev => [optimistic, ...prev])
     const { data } = await supabase.from("community_notes")
-      .insert({ community_slug: slug, user_id: user.id, title, content })
+      .insert({ community_slug: slug, user_id: user.id, title, content, media_url: media?.url ?? null, media_type: media?.type ?? null })
       .select().single()
     if (data) setNotes(prev => prev.map(n => n.id === optimistic.id ? { ...data, profiles: optimistic.profiles } : n))
   }
@@ -563,7 +590,8 @@ export default function CommunityClient({
                             <span className="text-xs app-text-muted">{formatTime(msg.created_at)}</span>
                           </div>
                         )}
-                        <p className={cn("text-sm app-text leading-relaxed break-words", msg.id.startsWith("temp-") && "opacity-60")}>{msg.content}</p>
+                        {msg.content && <p className={cn("text-sm app-text leading-relaxed break-words", msg.id.startsWith("temp-") && "opacity-60")}>{msg.content}</p>}
+                        {msg.media_url && <MediaDisplay url={msg.media_url} type={msg.media_type ?? undefined} />}
                       </div>
                       {canDelete && (
                         <button onClick={() => deleteMessage(msg.id)}
@@ -577,12 +605,18 @@ export default function CommunityClient({
                 <div ref={chatBottomRef} />
               </div>
               <div className="flex-shrink-0 p-3 app-surface border-t app-border mb-12 md:mb-0">
-                <div className="flex gap-2">
+                {chatMedia && (
+                  <div className="mb-2 pl-1">
+                    <MediaAttachment current={chatMedia} onAttach={setChatMedia} onRemove={() => setChatMedia(null)} uploading={chatMediaUploading} setUploading={setChatMediaUploading} bucket="post-media" folder="community" />
+                  </div>
+                )}
+                <div className="flex gap-2 items-center">
+                  {!chatMedia && <MediaAttachment current={null} onAttach={setChatMedia} onRemove={() => setChatMedia(null)} uploading={chatMediaUploading} setUploading={setChatMediaUploading} bucket="post-media" folder="community" />}
                   <input value={chatInput} onChange={e => setChatInput(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat() } }}
                     placeholder={`Message #${activeChannel.name.toLowerCase()}`}
                     className="flex-1 app-input-bg app-text rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
-                  <button onClick={sendChat} disabled={!chatInput.trim()}
+                  <button onClick={sendChat} disabled={!chatInput.trim() && !chatMedia}
                     className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm flex items-center gap-2">
                     <Send className="h-4 w-4" />
                   </button>
@@ -619,6 +653,7 @@ export default function CommunityClient({
                     </div>
                     <h2 className="text-lg font-bold app-text mb-2">{selectedPost.title}</h2>
                     <p className="text-sm app-text leading-relaxed">{selectedPost.content}</p>
+                    {selectedPost.media_url && <MediaDisplay url={selectedPost.media_url} type={selectedPost.media_type ?? undefined} />}
                   </div>
                   <div className="space-y-3 mb-4">
                     {getRepliesForPost(selectedPost.id).map(reply => (
@@ -630,7 +665,8 @@ export default function CommunityClient({
                             <BadgeIcon role={reply.profiles?.badge_role} />
                             <span className="text-xs app-text-muted">{formatTime(reply.created_at)}</span>
                           </div>
-                          <p className="text-sm app-text">{reply.content}</p>
+                          {reply.content && <p className="text-sm app-text">{reply.content}</p>}
+                          {reply.media_url && <MediaDisplay url={reply.media_url} type={reply.media_type ?? undefined} />}
                         </div>
                         {(canModerate || reply.user_id === user.id) && (
                           <button onClick={async () => {
@@ -646,16 +682,21 @@ export default function CommunityClient({
                       <p className="app-text-muted text-sm text-center py-4">No replies yet. Be the first!</p>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-start">
                     <Avatar profile={profile} size="sm" />
-                    <input value={replyInput} onChange={e => setReplyInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply(selectedPost.id) } }}
-                      placeholder="Write a reply..."
-                      className="flex-1 app-input-bg app-text rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
-                    <button onClick={() => sendReply(selectedPost.id)} disabled={!replyInput.trim()}
-                      className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm">
-                      <Send className="h-4 w-4" />
-                    </button>
+                    <div className="flex-1">
+                      <div className="flex gap-2 items-center">
+                        <input value={replyInput} onChange={e => setReplyInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply(selectedPost.id) } }}
+                          placeholder="Write a reply..."
+                          className="flex-1 app-input-bg app-text rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
+                        <button onClick={() => sendReply(selectedPost.id)} disabled={!replyInput.trim() && !replyMedia}
+                          className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm">
+                          <Send className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <MediaAttachment current={replyMedia} onAttach={setReplyMedia} onRemove={() => setReplyMedia(null)} uploading={replyMediaUploading} setUploading={setReplyMediaUploading} bucket="post-media" folder="community" />
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -673,8 +714,9 @@ export default function CommunityClient({
                       <input value={newPostTitle} onChange={e => setNewPostTitle(e.target.value)} placeholder="Title"
                         className="w-full app-input-bg app-text rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 mb-2" />
                       <textarea value={newPostContent} onChange={e => setNewPostContent(e.target.value)} placeholder="What's on your mind?" rows={4}
-                        className="w-full app-input-bg app-text rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 mb-3 resize-none" />
-                      <div className="flex gap-2 justify-end">
+                        className="w-full app-input-bg app-text rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 mb-2 resize-none" />
+                      <MediaAttachment current={newPostMedia} onAttach={setNewPostMedia} onRemove={() => setNewPostMedia(null)} uploading={newPostMediaUploading} setUploading={setNewPostMediaUploading} bucket="post-media" folder="community" />
+                      <div className="flex gap-2 justify-end mt-3">
                         <button onClick={() => setShowNewPost(false)} className="text-sm px-4 py-2 rounded-lg border app-border app-text-muted hover:opacity-80">Cancel</button>
                         <button onClick={createPost} disabled={!newPostTitle.trim() || !newPostContent.trim()}
                           className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg">Post</button>
@@ -746,6 +788,7 @@ export default function CommunityClient({
                     </div>
                     <h2 className="text-xl font-bold app-text mb-4">{selectedNote.title}</h2>
                     <p className="text-sm app-text leading-relaxed whitespace-pre-wrap">{selectedNote.content}</p>
+                    {selectedNote.media_url && <MediaDisplay url={selectedNote.media_url} type={selectedNote.media_type ?? undefined} />}
                   </div>
                 </div>
               ) : (
@@ -763,8 +806,9 @@ export default function CommunityClient({
                       <input value={newNoteTitle} onChange={e => setNewNoteTitle(e.target.value)} placeholder="Title (e.g. Chapter 3 Summary)"
                         className="w-full app-input-bg app-text rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 mb-2" />
                       <textarea value={newNoteContent} onChange={e => setNewNoteContent(e.target.value)} placeholder="Paste your notes here..." rows={8}
-                        className="w-full app-input-bg app-text rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 mb-3 resize-none font-mono" />
-                      <div className="flex gap-2 justify-end">
+                        className="w-full app-input-bg app-text rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 mb-2 resize-none font-mono" />
+                      <MediaAttachment current={newNoteMedia} onAttach={setNewNoteMedia} onRemove={() => setNewNoteMedia(null)} uploading={newNoteMediaUploading} setUploading={setNewNoteMediaUploading} bucket="post-media" folder="community" />
+                      <div className="flex gap-2 justify-end mt-3">
                         <button onClick={() => setShowNewNote(false)} className="text-sm px-4 py-2 rounded-lg border app-border app-text-muted hover:opacity-80">Cancel</button>
                         <button onClick={createNote} disabled={!newNoteTitle.trim() || !newNoteContent.trim()}
                           className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg">Share</button>
