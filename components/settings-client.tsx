@@ -79,6 +79,7 @@ export default function SettingsClient({ user, profile, notifSettings }: Setting
   // Profile state
   const [fullName, setFullName] = useState(profile?.full_name ?? "")
   const [bio, setBio] = useState(profile?.bio ?? "")
+  const [role, setRole] = useState(profile?.role ?? "")
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? "")
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [socials, setSocials] = useState<Record<string, string>>(
@@ -127,6 +128,7 @@ export default function SettingsClient({ user, profile, notifSettings }: Setting
     await supabase.from("profiles").update({
       full_name: fullName,
       bio,
+      role: role || null,
       avatar_url: avatarUrl || null,
       socials,
       hobbies,
@@ -260,6 +262,18 @@ export default function SettingsClient({ user, profile, notifSettings }: Setting
                     <textarea value={bio} onChange={e => setBio(e.target.value)} rows={3}
                       className="w-full app-input-bg app-text border app-border rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                       placeholder="Tell others a bit about yourself..." />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium app-text mb-1.5">Program</label>
+                    <select value={role} onChange={e => setRole(e.target.value)}
+                      className="w-full app-input-bg app-text border app-border rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                      <option value="">Select your program</option>
+                      <option value="CIMP">CIMP</option>
+                      <option value="A-Level">A-Level</option>
+                      <option value="AUSMAT">AUSMAT</option>
+                      <option value="FIA">FIA</option>
+                      <option value="FIST">FIST</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium app-text mb-1.5">Email</label>
