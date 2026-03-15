@@ -157,10 +157,47 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
   }, [connections, user.id])
 
   const connectedProfiles = useMemo(() => profiles.filter(p => getStatus(p.id) === "connected"), [profiles, getStatus])
-  const filteredProfiles = useMemo(() => profiles.filter(p =>
-    (p.full_name ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.bio ?? "").toLowerCase().includes(searchQuery.toLowerCase())
-  ), [profiles, searchQuery])
+
+  // Compute mutual friends count — friends of my friends who I'm not connected to yet
+  const handleConnect = async (toId: string) => {
+    const optimistic: Connection = { id: `temp-${Date.now()}`, sender_id: user.id, receiver_id: toId, status: "pending" }
+    setConnections(prev => [...prev, optimistic])
+    const res = await fetch(`/api/connections/send?to=${toId}`, { method: "POST" })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.id) setConnections(prev => prev.map(c => c.id === optimistic.id ? data : c))
+    } else {
+      setConnections(prev => prev.filter(c => c.id !== optimistic.id))
+    }
+  }
+
+  const handleAccept = async (fromId: string) => {
+    setConnections(prev => prev.map(c =>
+      c.sender_id === fromId && c.receiver_id === user.id ? { ...c, status: "accepted" } : c
+    ))
+    await fetch(`/api/connections/accept?from=${fromId}`, { method: "POST" })
+  }
+
+  const getMutualCount = useCallback((profileId: string) => {
+    const myFriendIds = new Set(connectedProfiles.map(p => p.id))
+    // Find connections where this person is involved and accepted
+    const theirFriendIds = connections
+      .filter(c => c.status === "accepted" && (c.sender_id === profileId || c.receiver_id === profileId))
+      .map(c => c.sender_id === profileId ? c.receiver_id : c.sender_id)
+    return theirFriendIds.filter(id => myFriendIds.has(id) && id !== user.id).length
+  }, [connections, connectedProfiles, user.id])
+
+  const filteredProfiles = useMemo(() => {
+    const query = searchQuery.toLowerCase()
+    const results = profiles.filter(p =>
+      p.id !== user.id && (
+        (p.full_name ?? "").toLowerCase().includes(query) ||
+        (p.bio ?? "").toLowerCase().includes(query)
+      )
+    )
+    // Sort: people with mutuals first, then by mutual count desc
+    return [...results].sort((a, b) => getMutualCount(b.id) - getMutualCount(a.id))
+  }, [profiles, searchQuery, getMutualCount, user.id])
 
   const communities = useMemo(() => profiles.reduce((acc, p) => {
     const role = p.role || "General"
@@ -269,50 +306,78 @@ export function DashboardClient({ user, profile, profiles, connections, posts: i
 
   const ConnectionCard = ({ p }: { p: Profile }) => {
     const status = getStatus(p.id)
+    const mutualCount = getMutualCount(p.id)
+
+    // Get up to 2 mutual friend avatars to show
+    const myFriendIds = new Set(connectedProfiles.map(f => f.id))
+    const mutualFriends = connections
+      .filter(c => c.status === "accepted" && (c.sender_id === p.id || c.receiver_id === p.id))
+      .map(c => c.sender_id === p.id ? c.receiver_id : c.sender_id)
+      .filter(id => myFriendIds.has(id) && id !== user.id)
+      .slice(0, 2)
+      .map(id => connectedProfiles.find(f => f.id === id))
+      .filter(Boolean) as Profile[]
+
     return (
-      <div className="app-surface rounded-xl p-5 border app-border hover:shadow-lg hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all">
-        <div className="flex items-start gap-4">
-          <div className="relative">
-            <div className="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center text-xl font-bold overflow-hidden ring-2 ring-zinc-700">
+      <div className="app-surface rounded-xl p-4 border app-border hover:shadow-lg hover:shadow-indigo-500/10 hover:-translate-y-0.5 transition-all">
+        <div className="flex items-start gap-3">
+          <a href={`/user/${p.id}`} className="flex-shrink-0">
+            <div className="w-14 h-14 rounded-full bg-indigo-600 overflow-hidden ring-2 ring-zinc-700 hover:opacity-80 transition-opacity">
               <img src={p.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
             </div>
-            <span className="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-green-500 ring-2 ring-zinc-900" />
-          </div>
+          </a>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <a href={`/user/${p.id}`} className="font-semibold hover:underline">{p.full_name ?? "Student"}</a>
-              {p.role && <span className="text-sm app-text-muted">({p.role})</span>}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <a href={`/user/${p.id}`} className="font-semibold text-sm hover:underline app-text">{p.full_name ?? "Student"}</a>
+              {p.role && <span className="text-xs app-text-muted">({p.role})</span>}
               <Badge badgeRole={p.badge_role} />
             </div>
-            <p className="text-sm app-text-muted mt-1 line-clamp-2">{p.bio ?? "No bio yet"}</p>
+            <p className="text-xs app-text-muted mt-0.5 line-clamp-1">{p.bio ?? "No bio yet"}</p>
+
+            {/* Mutuals — like Instagram */}
+            {mutualCount > 0 && (
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <div className="flex -space-x-1.5">
+                  {mutualFriends.map(f => (
+                    <div key={f.id} className="w-4 h-4 rounded-full overflow-hidden ring-1 ring-zinc-900">
+                      <img src={f.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+                <span className="text-xs app-text-muted">
+                  {mutualCount} mutual {mutualCount === 1 ? "friend" : "friends"}
+                </span>
+              </div>
+            )}
           </div>
         </div>
-        <div className="mt-4 flex gap-2">
-          <form method="POST" className="flex-1">
+
+        <div className="mt-3 flex gap-2">
+          <div className="flex-1">
             {status === "none" && (
-              <button formAction={`/api/connections/send?to=${p.id}`}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+              <button onClick={() => handleConnect(p.id)}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-1.5 rounded-lg flex items-center justify-center gap-2">
                 <UserPlus className="h-4 w-4" /> Connect
               </button>
             )}
             {status === "pending_sent" && (
-              <div className="w-full text-center text-yellow-400 text-sm py-2">Pending...</div>
+              <div className="w-full text-center text-yellow-400 text-sm py-1.5">Pending...</div>
             )}
             {status === "pending_received" && (
-              <button formAction={`/api/connections/accept?from=${p.id}`}
-                className="w-full bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+              <button onClick={() => handleAccept(p.id)}
+                className="w-full bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-1.5 rounded-lg flex items-center justify-center gap-2">
                 <UserCheck className="h-4 w-4" /> Accept
               </button>
             )}
             {status === "connected" && (
-              <div className="w-full text-center text-indigo-400 text-sm py-2 flex items-center justify-center gap-2">
+              <div className="w-full text-center text-indigo-400 text-sm py-1.5 flex items-center justify-center gap-2">
                 <UserCheck className="h-4 w-4" /> Connected
               </div>
             )}
-          </form>
+          </div>
           {status === "connected" && (
             <a href={`/messages/${p.id}`}
-              className="flex-1 border app-border hover:opacity-80 app-text text-sm px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+              className="flex-1 border app-border hover:opacity-80 app-text text-sm px-4 py-1.5 rounded-lg flex items-center justify-center gap-2">
               <MessageCircle className="h-4 w-4" /> Message
             </a>
           )}
