@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { notFound } from "next/navigation"
 import CommunityClient from "@/components/community-client"
 import { getPublicCommunity, isPublicCommunity } from "@/lib/communities"
-import { SUBJECTS } from "@/lib/subjects"
+import { PROGRAM_SUBJECTS } from "@/lib/subjects"
 
 export default async function CommunityPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -27,7 +27,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
     community = { name: pub.name, type: "public", emoji: pub.emoji, description: pub.description }
   } else {
     // Check if it's a subject or program community (existing logic)
-    const allSubjects = SUBJECTS.flatMap(p => p.subjects)
+    const allSubjects = PROGRAM_SUBJECTS.flatMap(p => p.subjects)
     const programs = ["CIMP", "A-Level", "AUSMAT", "FIA", "FIST"]
     if (allSubjects.includes(decodedSlug) || programs.includes(decodedSlug)) {
       community = {
