@@ -13,7 +13,8 @@ export function SunwayLogo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
     return () => mq.removeEventListener("change", handler)
   }, [])
 
-  const h = { sm: "h-16 md:h-16", md: "h-20 md:h-20", lg: "h-24 md:h-24" }[size]
+  // sm = navbar (small), md = medium, lg = login/verify pages
+  const h = { sm: "h-8 md:h-9", md: "h-10 md:h-12", lg: "h-14 md:h-16" }[size]
 
   return (
     <img
