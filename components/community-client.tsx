@@ -97,9 +97,9 @@ const Avatar = ({ profile, size = "sm" }: { profile: { full_name?: string | null
 
 const BadgeIcon = ({ role }: { role: string | null | undefined }) => {
   if (!role) return null
-  if (["Founder", "Admin"].includes(role ?? "")) return <Crown className="h-3 w-3 text-yellow-400" title={role} />
-  if (role === "Moderator") return <ShieldCheck className="h-3 w-3 text-indigo-400" title={role} />
-  if (role === "Community Moderator") return <Shield className="h-3 w-3 text-blue-400" title={role} />
+  if (["Founder", "Admin"].includes(role ?? "")) return <span title={role}><Crown className="h-3 w-3 text-yellow-400" /></span>
+  if (role === "Moderator") return <span title={role}><ShieldCheck className="h-3 w-3 text-indigo-400" /></span>
+  if (role === "Community Moderator") return <span title={role}><Shield className="h-3 w-3 text-blue-400" /></span>
   return null
 }
 
