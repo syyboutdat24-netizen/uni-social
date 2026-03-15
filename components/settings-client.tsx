@@ -106,9 +106,18 @@ export default function SettingsClient({ user, profile, notifSettings }: Setting
     const { data, error } = await supabase.storage
       .from("avatars")
       .upload(path, file, { upsert: true })
-    if (!error && data) {
+    if (error) {
+      console.error("Upload error:", error.message)
+      setAvatarUploading(false)
+      return
+    }
+    if (data) {
       const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(data.path)
-      setAvatarUrl(urlData.publicUrl)
+      const newUrl = urlData.publicUrl
+      setAvatarUrl(newUrl)
+      // Auto-save avatar_url immediately
+      await supabase.from("profiles").update({ avatar_url: newUrl }).eq("id", user.id)
+      showSaved()
     }
     setAvatarUploading(false)
   }
