@@ -100,10 +100,10 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
       community={community}
       slug={decodedSlug}
       members={members}
-      forumPosts={forumPosts ?? []}
-      forumReplies={forumReplies ?? []}
-      chatMessages={chatMessages ?? []}
-      notes={notes ?? []}
+      forumPosts={(forumPosts ?? []) as any}
+      forumReplies={(forumReplies ?? []) as any}
+      chatMessages={(chatMessages ?? []) as any}
+      notes={(notes ?? []) as any}
     />
   )
 }
