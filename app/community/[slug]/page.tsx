@@ -26,9 +26,10 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
     const pub = getPublicCommunity(decodedSlug)!
     community = { name: pub.name, type: "public", emoji: pub.emoji, description: pub.description }
   } else {
-    const programs = ["CIMP", "A-Level", "AUSMAT", "FIA", "FIST"]
+    const programs = Object.keys(PROGRAM_SUBJECTS)
+    const allSubjects = Object.values(PROGRAM_SUBJECTS).flat()
     const isProgram = programs.includes(decodedSlug)
-    const isSubject = PROGRAM_SUBJECTS.includes(decodedSlug)
+    const isSubject = allSubjects.includes(decodedSlug)
     if (isProgram || isSubject) {
       community = {
         name: decodedSlug,
