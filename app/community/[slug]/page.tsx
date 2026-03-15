@@ -1,91 +1,108 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import { PROGRAM_SUBJECTS } from "@/lib/subjects";
-import CommunityClient from "@/components/community-client";
-
-export const dynamic = "force-dynamic";
-
-function getCommunityInfo(slug: string): { name: string; type: "program" | "subject" } | null {
-  const decoded = decodeURIComponent(slug)
-  if (PROGRAM_SUBJECTS[decoded]) return { name: decoded, type: "program" }
-  for (const subjects of Object.values(PROGRAM_SUBJECTS)) {
-    if (subjects.includes(decoded)) return { name: decoded, type: "subject" }
-  }
-  return null
-}
+import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
+import { notFound } from "next/navigation"
+import CommunityClient from "@/components/community-client"
+import { getPublicCommunity, isPublicCommunity } from "@/lib/communities"
+import { SUBJECTS } from "@/lib/subjects"
 
 export default async function CommunityPage({ params }: { params: Promise<{ slug: string }> }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { slug } = await params
+  const decodedSlug = decodeURIComponent(slug)
 
-  const { slug } = await params;
-  const community = getCommunityInfo(slug)
-  if (!community) redirect("/dashboard");
+  const supabase = await createClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (error || !user) redirect("/login")
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, full_name, avatar_url, role, badge_role")
     .eq("id", user.id)
-    .maybeSingle();
+    .single()
 
-  // Get members depending on community type
+  // Determine community type
+  let community: { name: string; type: "program" | "subject" | "public"; emoji?: string; description?: string }
+
+  if (isPublicCommunity(decodedSlug)) {
+    const pub = getPublicCommunity(decodedSlug)!
+    community = { name: pub.name, type: "public", emoji: pub.emoji, description: pub.description }
+  } else {
+    // Check if it's a subject or program community (existing logic)
+    const allSubjects = SUBJECTS.flatMap(p => p.subjects)
+    const programs = ["CIMP", "A-Level", "AUSMAT", "FIA", "FIST"]
+    if (allSubjects.includes(decodedSlug) || programs.includes(decodedSlug)) {
+      community = {
+        name: decodedSlug,
+        type: allSubjects.includes(decodedSlug) ? "subject" : "program"
+      }
+    } else {
+      notFound()
+    }
+  }
+
+  // For public communities, members = anyone who has sent a message or post
+  // For program/subject communities, filter by role/membership
   let members: any[] = []
-  if (community.type === "program") {
+
+  if (community.type === "public") {
+    // Get members who joined (sent messages or posts in this community)
+    const { data: memberIds } = await supabase
+      .from("community_messages")
+      .select("user_id")
+      .eq("community_slug", decodedSlug)
+
+    const uniqueIds = [...new Set((memberIds ?? []).map((m: any) => m.user_id))]
+
+    if (uniqueIds.length > 0) {
+      const { data: memberProfiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, role, badge_role")
+        .in("id", uniqueIds)
+      members = memberProfiles ?? []
+    }
+  } else if (community.type === "program") {
     const { data } = await supabase
       .from("profiles")
       .select("id, full_name, avatar_url, role, badge_role")
-      .eq("role", community.name)
+      .eq("role", decodedSlug)
     members = data ?? []
   } else {
-    const { data } = await supabase
+    const { data: memberships } = await supabase
       .from("subject_memberships")
-      .select("user_id, profiles:profiles!user_id(id, full_name, avatar_url, role, badge_role)")
-      .eq("subject", community.name)
-    members = (data ?? []).map((m: any) => m.profiles).filter(Boolean)
+      .select("user_id")
+      .eq("subject", decodedSlug)
+    const ids = (memberships ?? []).map((m: any) => m.user_id)
+    if (ids.length > 0) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, role, badge_role")
+        .in("id", ids)
+      members = data ?? []
+    }
   }
 
   const [
     { data: forumPosts },
+    { data: forumReplies },
     { data: chatMessages },
     { data: notes },
-    { data: forumReplies },
   ] = await Promise.all([
-    supabase
-      .from("community_posts")
-      .select("id, user_id, title, content, created_at, profiles:profiles!user_id(full_name, avatar_url, badge_role)")
-      .eq("community_slug", slug)
-      .order("created_at", { ascending: false })
-      .limit(50),
-    supabase
-      .from("community_messages")
-      .select("id, user_id, content, created_at, profiles:profiles!user_id(full_name, avatar_url, badge_role)")
-      .eq("community_slug", slug)
-      .order("created_at", { ascending: true })
-      .limit(100),
-    supabase
-      .from("community_notes")
-      .select("id, user_id, title, content, created_at, profiles:profiles!user_id(full_name, avatar_url, badge_role)")
-      .eq("community_slug", slug)
-      .order("created_at", { ascending: false })
-      .limit(50),
-    supabase
-      .from("community_post_replies")
-      .select("id, post_id, user_id, content, created_at, profiles:profiles!user_id(full_name, avatar_url, badge_role)")
-      .order("created_at", { ascending: true }),
-  ]);
+    supabase.from("community_posts").select("id, user_id, title, content, created_at, profiles(full_name, avatar_url, badge_role)").eq("community_slug", decodedSlug).order("created_at", { ascending: false }).limit(50),
+    supabase.from("community_post_replies").select("id, post_id, user_id, content, created_at, profiles(full_name, avatar_url, badge_role)").in("post_id", (await supabase.from("community_posts").select("id").eq("community_slug", decodedSlug)).data?.map((p: any) => p.id) ?? []),
+    supabase.from("community_messages").select("id, user_id, content, created_at, profiles(full_name, avatar_url, badge_role)").eq("community_slug", decodedSlug).order("created_at", { ascending: true }).limit(100),
+    supabase.from("community_notes").select("id, user_id, title, content, created_at, profiles(full_name, avatar_url, badge_role)").eq("community_slug", decodedSlug).order("created_at", { ascending: false }).limit(50),
+  ])
 
   return (
     <CommunityClient
       user={{ id: user.id, email: user.email ?? "" }}
       profile={profile}
       community={community}
-      slug={slug}
+      slug={decodedSlug}
       members={members}
-      forumPosts={(forumPosts ?? []) as any[]}
-      forumReplies={(forumReplies ?? []) as any[]}
-      chatMessages={(chatMessages ?? []) as any[]}
-      notes={(notes ?? []) as any[]}
+      forumPosts={forumPosts ?? []}
+      forumReplies={forumReplies ?? []}
+      chatMessages={chatMessages ?? []}
+      notes={notes ?? []}
     />
-  );
+  )
 }

@@ -67,7 +67,7 @@ interface Note {
 interface CommunityClientProps {
   user: { id: string; email: string }
   profile: Profile | null
-  community: { name: string; type: "program" | "subject" }
+  community: { name: string; type: "program" | "subject" | "public"; emoji?: string; description?: string }
   slug: string
   members: Profile[]
   forumPosts: ForumPost[]
@@ -228,11 +228,15 @@ export default function CommunityClient({
             <ChevronLeft className="h-5 w-5" />
           </a>
           <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
-            <Hash className="h-4 w-4 text-indigo-500" />
+            {community.emoji ? (
+              <span className="text-lg">{community.emoji}</span>
+            ) : (
+              <Hash className="h-4 w-4 text-indigo-500" />
+            )}
           </div>
           <div>
             <p className="font-semibold text-sm app-text leading-none">{community.name}</p>
-            <p className="text-xs app-text-muted">{community.type === "program" ? "Program" : "Subject"} • {initialMembers.length} members</p>
+            <p className="text-xs app-text-muted">{community.type === "public" ? "Public Community" : community.type === "program" ? "Program" : "Subject"} • {initialMembers.length} members</p>
           </div>
         </div>
         <button onClick={() => setMemberSidebarOpen(v => !v)}

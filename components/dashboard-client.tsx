@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client"
 import { SearchModal } from "@/components/search-modal"
 import NotificationsPanel from "@/components/notifications-panel"
 import { SunwayLogo } from "@/components/SunwayLogo"
+import { PublicCommunitiesTab } from "@/components/PublicCommunitiesTab"
 
 const supabase = createClient()
 
@@ -100,9 +101,8 @@ const Badge = ({ badgeRole }: { badgeRole: string | null | undefined }) => {
 const isStaff = (badgeRole: string | null | undefined) =>
   ["Founder", "Admin", "Moderator"].includes(badgeRole ?? "")
 
-export function DashboardClient({ user, profile, profiles, connections: initialConnections, posts: initialPosts, likes: initialLikes, replies: initialReplies, subjectMemberships, signOut }: DashboardClientProps) {
+export function DashboardClient({ user, profile, profiles, connections, posts: initialPosts, likes: initialLikes, replies: initialReplies, subjectMemberships, signOut }: DashboardClientProps) {
   const [activeTab, setActiveTab] = useState<"home" | "friends" | "connections" | "community" | "messages">("home")
-  const [connections, setConnections] = useState<Connection[]>(initialConnections)
   const [unreadSenders, setUnreadSenders] = useState<Set<string>>(new Set())
 
   // Fetch unread message senders on mount and subscribe to new messages
@@ -267,32 +267,6 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
     }
   }
 
-  const handleConnect = async (toId: string) => {
-    const optimistic: Connection = {
-      id: `temp-${Date.now()}`,
-      sender_id: user.id,
-      receiver_id: toId,
-      status: "pending",
-    }
-    setConnections(prev => [...prev, optimistic])
-    const res = await fetch(`/api/connections/send?to=${toId}`, { method: "POST" })
-    if (res.ok) {
-      const data = await res.json()
-      if (data.id) setConnections(prev => prev.map(c => c.id === optimistic.id ? data : c))
-    } else {
-      setConnections(prev => prev.filter(c => c.id !== optimistic.id))
-    }
-  }
-
-  const handleAccept = async (fromId: string) => {
-    setConnections(prev => prev.map(c =>
-      c.sender_id === fromId && c.receiver_id === user.id
-        ? { ...c, status: "accepted" }
-        : c
-    ))
-    await fetch(`/api/connections/accept?from=${fromId}`, { method: "POST" })
-  }
-
   const ConnectionCard = ({ p }: { p: Profile }) => {
     const status = getStatus(p.id)
     return (
@@ -314,9 +288,9 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
           </div>
         </div>
         <div className="mt-4 flex gap-2">
-          <div className="flex-1">
+          <form method="POST" className="flex-1">
             {status === "none" && (
-              <button onClick={() => handleConnect(p.id)}
+              <button formAction={`/api/connections/send?to=${p.id}`}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-2 rounded-lg flex items-center justify-center gap-2">
                 <UserPlus className="h-4 w-4" /> Connect
               </button>
@@ -325,7 +299,7 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
               <div className="w-full text-center text-yellow-400 text-sm py-2">Pending...</div>
             )}
             {status === "pending_received" && (
-              <button onClick={() => handleAccept(p.id)}
+              <button formAction={`/api/connections/accept?from=${p.id}`}
                 className="w-full bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg flex items-center justify-center gap-2">
                 <UserCheck className="h-4 w-4" /> Accept
               </button>
@@ -335,7 +309,7 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
                 <UserCheck className="h-4 w-4" /> Connected
               </div>
             )}
-          </div>
+          </form>
           {status === "connected" && (
             <a href={`/messages/${p.id}`}
               className="flex-1 border app-border hover:opacity-80 app-text text-sm px-4 py-2 rounded-lg flex items-center justify-center gap-2">
@@ -849,6 +823,9 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
                     </a>
                   ))}
                 </div>
+              </div>
+              <div className="mt-8">
+                <PublicCommunitiesTab />
               </div>
             </div>
           )}
