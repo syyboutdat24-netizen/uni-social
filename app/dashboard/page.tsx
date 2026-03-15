@@ -12,12 +12,14 @@ export default async function DashboardPage() {
     { data: profile },
     { data: profiles },
     { data: connections },
+    { data: allConnections },
     { data: rawPosts },
     { data: subjectMemberships },
   ] = await Promise.all([
     supabase.from("profiles").select("id, full_name, bio, avatar_url, role, badge_role").eq("id", user.id).maybeSingle(),
     supabase.from("profiles").select("id, full_name, bio, avatar_url, role, badge_role").neq("id", user.id),
     supabase.from("connections").select("id, sender_id, receiver_id, status").or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`),
+    supabase.from("connections").select("sender_id, receiver_id").eq("status", "accepted"),
     supabase.from("posts").select("id, user_id, content, created_at").order("created_at", { ascending: false }).limit(30),
     supabase.from("subject_memberships").select("subject").eq("user_id", user.id),
   ]);
@@ -57,6 +59,7 @@ export default async function DashboardPage() {
       profile={profile}
       profiles={profiles ?? []}
       connections={connections ?? []}
+      allConnections={allConnections ?? []}
       posts={posts}
       likes={likes ?? []}
       replies={replies}

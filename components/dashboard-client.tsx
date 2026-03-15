@@ -86,6 +86,7 @@ interface DashboardClientProps {
   profile: Profile | null
   profiles: Profile[]
   connections: Connection[]
+  allConnections: { sender_id: string; receiver_id: string }[]
   posts: Post[]
   likes: Like[]
   replies: Reply[]
@@ -101,7 +102,7 @@ const Badge = ({ badgeRole }: { badgeRole: string | null | undefined }) => {
 const isStaff = (badgeRole: string | null | undefined) =>
   ["Founder", "Admin", "Moderator"].includes(badgeRole ?? "")
 
-export function DashboardClient({ user, profile, profiles, connections: initialConnections, posts: initialPosts, likes: initialLikes, replies: initialReplies, subjectMemberships, signOut }: DashboardClientProps) {
+export function DashboardClient({ user, profile, profiles, connections: initialConnections, allConnections, posts: initialPosts, likes: initialLikes, replies: initialReplies, subjectMemberships, signOut }: DashboardClientProps) {
   const [activeTab, setActiveTab] = useState<"home" | "friends" | "connections" | "community" | "messages">("home")
   const [connections, setConnections] = useState<Connection[]>(initialConnections)
   const [unreadSenders, setUnreadSenders] = useState<Set<string>>(new Set())
@@ -181,12 +182,11 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
 
   const getMutualCount = useCallback((profileId: string) => {
     const myFriendIds = new Set(connectedProfiles.map(p => p.id))
-    // Find connections where this person is involved and accepted
-    const theirFriendIds = connections
-      .filter(c => c.status === "accepted" && (c.sender_id === profileId || c.receiver_id === profileId))
+    const theirFriendIds = allConnections
+      .filter(c => c.sender_id === profileId || c.receiver_id === profileId)
       .map(c => c.sender_id === profileId ? c.receiver_id : c.sender_id)
     return theirFriendIds.filter(id => myFriendIds.has(id) && id !== user.id).length
-  }, [connections, connectedProfiles, user.id])
+  }, [allConnections, connectedProfiles, user.id])
 
   const filteredProfiles = useMemo(() => {
     const query = searchQuery.toLowerCase()
@@ -311,8 +311,8 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
 
     // Get up to 2 mutual friend avatars to show
     const myFriendIds = new Set(connectedProfiles.map(f => f.id))
-    const mutualFriends = connections
-      .filter(c => c.status === "accepted" && (c.sender_id === p.id || c.receiver_id === p.id))
+    const mutualFriends = allConnections
+      .filter(c => c.sender_id === p.id || c.receiver_id === p.id)
       .map(c => c.sender_id === p.id ? c.receiver_id : c.sender_id)
       .filter(id => myFriendIds.has(id) && id !== user.id)
       .slice(0, 2)
