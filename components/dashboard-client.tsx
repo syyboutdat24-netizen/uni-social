@@ -101,8 +101,9 @@ const Badge = ({ badgeRole }: { badgeRole: string | null | undefined }) => {
 const isStaff = (badgeRole: string | null | undefined) =>
   ["Founder", "Admin", "Moderator"].includes(badgeRole ?? "")
 
-export function DashboardClient({ user, profile, profiles, connections, posts: initialPosts, likes: initialLikes, replies: initialReplies, subjectMemberships, signOut }: DashboardClientProps) {
+export function DashboardClient({ user, profile, profiles, connections: initialConnections, posts: initialPosts, likes: initialLikes, replies: initialReplies, subjectMemberships, signOut }: DashboardClientProps) {
   const [activeTab, setActiveTab] = useState<"home" | "friends" | "connections" | "community" | "messages">("home")
+  const [connections, setConnections] = useState<Connection[]>(initialConnections)
   const [unreadSenders, setUnreadSenders] = useState<Set<string>>(new Set())
 
   // Fetch unread message senders on mount and subscribe to new messages
