@@ -37,7 +37,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         {baseUrl && <link rel="canonical" href={baseUrl} />}
-        <link rel="apple-touch-icon" href="/logo-dark.png" />
+        <link rel="apple-touch-icon" href="/icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
