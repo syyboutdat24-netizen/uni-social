@@ -40,7 +40,7 @@ export default async function UserProfilePage({ params }: { params: Promise<{ id
 
   if (!profile) redirect("/dashboard");
 
-  const { data: rawPosts } = await supabase.from("posts").select("*").eq("user_id", id).order("created_at", { ascending: false });
+  const { data: rawPosts } = await supabase.from("posts").select("*").eq("user_id", id).or("anonymous.eq.false,anonymous.is.null").order("created_at", { ascending: false });
   const { data: likes } = await supabase.from("likes").select("*");
   const { data: subjectMemberships } = await supabase.from("subject_memberships").select("subject").eq("user_id", id);
   const { data: allConnections } = await supabase.from("connections").select("*").or(`sender_id.eq.${id},receiver_id.eq.${id}`).eq("status", "accepted");
