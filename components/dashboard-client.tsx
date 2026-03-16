@@ -473,7 +473,7 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
       </header>
 
       {/* BOTTOM NAV — mobile only */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 app-surface border-t app-border flex items-center justify-around h-14 px-2">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 app-surface border-t app-border flex items-center justify-around px-2" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)", height: "calc(3.5rem + env(safe-area-inset-bottom, 0px))" }}>
         {[
           { tab: "home" as const, icon: <Home className="h-6 w-6" />, label: "Home", dot: false },
           { tab: "messages" as const, icon: <MessageCircle className="h-6 w-6" />, label: "Messages", dot: unreadSenders.size > 0 },
@@ -494,7 +494,7 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
         ))}
       </nav>
 
-      <main className="flex-1 flex pb-14 md:pb-0">
+      <main className="flex-1 flex md:pb-0" style={{ paddingBottom: "calc(3.5rem + env(safe-area-inset-bottom, 0px))" }}>
         {sidebarOpen && (
           <>
             <aside className="fixed inset-y-0 left-0 z-60 w-64 app-surface border-r app-border overflow-y-auto">
