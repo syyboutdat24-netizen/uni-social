@@ -432,7 +432,7 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
   return (
     <div className="flex min-h-screen flex-col app-bg app-text">
       {/* TOP HEADER */}
-      <header className="sticky top-0 z-50 w-full border-b app-border app-surface shadow-sm">
+      <header className="sticky top-0 z-50 w-full border-b app-border app-surface shadow-sm" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="relative flex h-14 items-center justify-between px-3 md:px-6">
 
           {/* Left: hamburger + logo */}
