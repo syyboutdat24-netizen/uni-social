@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { Send, Hash, MessageCircle, BookOpen, Users, X, Plus, ChevronLeft, FileText, Menu, Settings, Trash2, Shield, ShieldCheck, Crown, Edit2, Check, AlertTriangle } from "lucide-react"
+import { Send, Hash, MessageCircle, BookOpen, Users, X, Plus, ChevronLeft, FileText, Menu, Settings, Trash2, Shield, ShieldCheck, Crown, Edit2, Check, AlertTriangle, EyeOff } from "lucide-react"
 import { MediaAttachment, MediaDisplay } from "@/components/MediaAttachment"
 import type { MediaFile } from "@/components/MediaAttachment"
 
@@ -41,6 +41,7 @@ interface ForumPost {
   content: string
   media_url?: string | null
   media_type?: string | null
+  anonymous?: boolean | null
   created_at: string
   profiles: { full_name: string | null; avatar_url: string | null; badge_role: string | null } | null
 }
@@ -52,6 +53,7 @@ interface ForumReply {
   content: string
   media_url?: string | null
   media_type?: string | null
+  anonymous?: boolean | null
   created_at: string
   profiles: { full_name: string | null; avatar_url: string | null; badge_role: string | null } | null
 }
@@ -62,6 +64,7 @@ interface ChatMessage {
   content: string
   media_url?: string | null
   media_type?: string | null
+  anonymous?: boolean | null
   created_at: string
   profiles: { full_name: string | null; avatar_url: string | null; badge_role: string | null } | null
 }
@@ -73,6 +76,7 @@ interface Note {
   content: string
   media_url?: string | null
   media_type?: string | null
+  anonymous?: boolean | null
   created_at: string
   profiles: { full_name: string | null; avatar_url: string | null; badge_role: string | null } | null
 }
@@ -115,6 +119,14 @@ export default function CommunityClient({
   chatMessages: initialChatMessages, notes: initialNotes,
 }: CommunityClientProps) {
   const canModerate = isMod(profile?.badge_role)
+  const [incognito, setIncognito] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("incognito") === "true"
+    return false
+  })
+  const toggleIncognito = () => {
+    setIncognito(prev => { const next = !prev; localStorage.setItem("incognito", String(next)); return next })
+  }
+  const anonProfile = { full_name: "Anonymous", avatar_url: null, badge_role: null }
 
   // Default channels
   const defaultChannels: Channel[] = [
@@ -204,11 +216,11 @@ export default function CommunityClient({
       id: `temp-${Date.now()}`, user_id: user.id, content: content || "",
       media_url: media?.url ?? null, media_type: media?.type ?? null,
       created_at: new Date().toISOString(),
-      profiles: { full_name: profile?.full_name ?? null, avatar_url: profile?.avatar_url ?? null, badge_role: profile?.badge_role ?? null }
+      profiles: incognito ? anonProfile : { full_name: profile?.full_name ?? null, avatar_url: profile?.avatar_url ?? null, badge_role: profile?.badge_role ?? null }
     }
     setChatMessages(prev => [...prev, optimistic])
     const { data } = await supabase.from("community_messages")
-      .insert({ community_slug: slug, user_id: user.id, content: content || "", media_url: media?.url ?? null, media_type: media?.type ?? null })
+      .insert({ community_slug: slug, user_id: user.id, content: content || "", media_url: media?.url ?? null, media_type: media?.type ?? null, anonymous: incognito })
       .select().single()
     if (data) setChatMessages(prev => prev.map(m => m.id === optimistic.id ? { ...data, profiles: optimistic.profiles } : m))
   }
@@ -228,11 +240,11 @@ export default function CommunityClient({
       id: `temp-${Date.now()}`, user_id: user.id, title, content,
       media_url: media?.url ?? null, media_type: media?.type ?? null,
       created_at: new Date().toISOString(),
-      profiles: { full_name: profile?.full_name ?? null, avatar_url: profile?.avatar_url ?? null, badge_role: profile?.badge_role ?? null }
+      profiles: incognito ? anonProfile : { full_name: profile?.full_name ?? null, avatar_url: profile?.avatar_url ?? null, badge_role: profile?.badge_role ?? null }
     }
     setForumPosts(prev => [optimistic, ...prev])
     const { data } = await supabase.from("community_posts")
-      .insert({ community_slug: slug, user_id: user.id, title, content, media_url: media?.url ?? null, media_type: media?.type ?? null })
+      .insert({ community_slug: slug, user_id: user.id, title, content, media_url: media?.url ?? null, media_type: media?.type ?? null, anonymous: incognito })
       .select().single()
     if (data) setForumPosts(prev => prev.map(p => p.id === optimistic.id ? { ...data, profiles: optimistic.profiles } : p))
   }
@@ -252,11 +264,11 @@ export default function CommunityClient({
       id: `temp-${Date.now()}`, post_id: postId, user_id: user.id, content: content || "",
       media_url: media?.url ?? null, media_type: media?.type ?? null,
       created_at: new Date().toISOString(),
-      profiles: { full_name: profile?.full_name ?? null, avatar_url: profile?.avatar_url ?? null, badge_role: profile?.badge_role ?? null }
+      profiles: incognito ? anonProfile : { full_name: profile?.full_name ?? null, avatar_url: profile?.avatar_url ?? null, badge_role: profile?.badge_role ?? null }
     }
     setForumReplies(prev => [...prev, optimistic])
     const { data } = await supabase.from("community_post_replies")
-      .insert({ post_id: postId, user_id: user.id, content: content || "", media_url: media?.url ?? null, media_type: media?.type ?? null })
+      .insert({ post_id: postId, user_id: user.id, content: content || "", media_url: media?.url ?? null, media_type: media?.type ?? null, anonymous: incognito })
       .select().single()
     if (data) setForumReplies(prev => prev.map(r => r.id === optimistic.id ? { ...data, profiles: optimistic.profiles } : r))
   }
@@ -271,11 +283,11 @@ export default function CommunityClient({
       id: `temp-${Date.now()}`, user_id: user.id, title, content,
       media_url: media?.url ?? null, media_type: media?.type ?? null,
       created_at: new Date().toISOString(),
-      profiles: { full_name: profile?.full_name ?? null, avatar_url: profile?.avatar_url ?? null, badge_role: profile?.badge_role ?? null }
+      profiles: incognito ? anonProfile : { full_name: profile?.full_name ?? null, avatar_url: profile?.avatar_url ?? null, badge_role: profile?.badge_role ?? null }
     }
     setNotes(prev => [optimistic, ...prev])
     const { data } = await supabase.from("community_notes")
-      .insert({ community_slug: slug, user_id: user.id, title, content, media_url: media?.url ?? null, media_type: media?.type ?? null })
+      .insert({ community_slug: slug, user_id: user.id, title, content, media_url: media?.url ?? null, media_type: media?.type ?? null, anonymous: incognito })
       .select().single()
     if (data) setNotes(prev => prev.map(n => n.id === optimistic.id ? { ...data, profiles: optimistic.profiles } : n))
   }
@@ -497,6 +509,13 @@ export default function CommunityClient({
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <button onClick={toggleIncognito}
+            title={incognito ? "Incognito ON — click to turn off" : "Turn on Incognito mode"}
+            className={cn("h-8 w-8 flex items-center justify-center rounded-lg transition-colors",
+              incognito ? "bg-indigo-600 text-white" : "hover:opacity-80 app-text-muted"
+            )}>
+            <EyeOff className="h-4 w-4" />
+          </button>
           {canModerate && (
             <button onClick={() => setSettingsOpen(true)}
               className="h-8 w-8 flex items-center justify-center rounded-lg hover:opacity-80 app-text-muted"
@@ -564,6 +583,15 @@ export default function CommunityClient({
         {/* Main content */}
         <div className="flex-1 flex flex-col overflow-hidden">
 
+          {/* Incognito banner */}
+          {incognito && (
+            <div className="flex-shrink-0 flex items-center gap-2 bg-indigo-600/20 border-b border-indigo-500/30 px-4 py-2">
+              <EyeOff className="h-4 w-4 text-indigo-400 flex-shrink-0" />
+              <p className="text-xs text-indigo-300 flex-1">Incognito ON — posting as Anonymous</p>
+              <button onClick={toggleIncognito} className="text-xs text-indigo-400 hover:opacity-80">Turn off</button>
+            </div>
+          )}
+
           {/* CHAT */}
           {activeChannel?.type === "chat" && (
             <div className="flex-1 flex flex-col overflow-hidden">
@@ -577,12 +605,17 @@ export default function CommunityClient({
                   const canDelete = canModerate || msg.user_id === user.id
                   return (
                     <div key={msg.id} className={cn("flex gap-3 group", sameUser && "mt-0.5")}>
-                      {!sameUser ? <Avatar profile={msg.profiles} size="sm" /> : <div className="w-8 flex-shrink-0" />}
+                      {!sameUser
+                        ? msg.anonymous
+                          ? <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center flex-shrink-0"><EyeOff className="h-4 w-4 text-zinc-400" /></div>
+                          : <Avatar profile={msg.profiles} size="sm" />
+                        : <div className="w-8 flex-shrink-0" />
+                      }
                       <div className="flex-1 min-w-0">
                         {!sameUser && (
                           <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="text-sm font-semibold app-text">{msg.profiles?.full_name ?? "Student"}</span>
-                            <BadgeIcon role={msg.profiles?.badge_role} />
+                            <span className="text-sm font-semibold app-text">{msg.anonymous ? <span className="italic text-zinc-400">Anonymous</span> : (msg.profiles?.full_name ?? "Student")}</span>
+                            {!msg.anonymous && <BadgeIcon role={msg.profiles?.badge_role} />}
                             <span className="text-xs app-text-muted">{formatTime(msg.created_at)}</span>
                           </div>
                         )}
@@ -638,11 +671,16 @@ export default function CommunityClient({
                   </div>
                   <div className="app-surface rounded-xl p-5 border app-border mb-4">
                     <div className="flex items-center gap-3 mb-3">
-                      <Avatar profile={selectedPost.profiles} size="sm" />
+                      {selectedPost.anonymous
+                        ? <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center"><EyeOff className="h-4 w-4 text-zinc-400" /></div>
+                        : <Avatar profile={selectedPost.profiles} size="sm" />
+                      }
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <p className="font-semibold text-sm app-text">{selectedPost.profiles?.full_name ?? "Student"}</p>
-                          <BadgeIcon role={selectedPost.profiles?.badge_role} />
+                          {selectedPost.anonymous
+                            ? <p className="font-semibold text-sm italic text-zinc-400">Anonymous</p>
+                            : <><p className="font-semibold text-sm app-text">{selectedPost.profiles?.full_name ?? "Student"}</p><BadgeIcon role={selectedPost.profiles?.badge_role} /></>
+                          }
                         </div>
                         <p className="text-xs app-text-muted">{formatTime(selectedPost.created_at)}</p>
                       </div>
@@ -654,11 +692,16 @@ export default function CommunityClient({
                   <div className="space-y-3 mb-4">
                     {getRepliesForPost(selectedPost.id).map(reply => (
                       <div key={reply.id} className={cn("flex gap-3 group", reply.id.startsWith("temp-") && "opacity-60")}>
-                        <Avatar profile={reply.profiles} size="sm" />
+                        {reply.anonymous
+                          ? <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center flex-shrink-0"><EyeOff className="h-4 w-4 text-zinc-400" /></div>
+                          : <Avatar profile={reply.profiles} size="sm" />
+                        }
                         <div className="flex-1 app-input-bg rounded-xl px-4 py-2.5">
                           <div className="flex items-center gap-1.5 mb-1">
-                            <span className="text-sm font-semibold app-text">{reply.profiles?.full_name ?? "Student"}</span>
-                            <BadgeIcon role={reply.profiles?.badge_role} />
+                            {reply.anonymous
+                              ? <span className="text-sm font-semibold italic text-zinc-400">Anonymous</span>
+                              : <><span className="text-sm font-semibold app-text">{reply.profiles?.full_name ?? "Student"}</span><BadgeIcon role={reply.profiles?.badge_role} /></>
+                            }
                             <span className="text-xs app-text-muted">{formatTime(reply.created_at)}</span>
                           </div>
                           {reply.content && <p className="text-sm app-text">{reply.content}</p>}
@@ -725,10 +768,16 @@ export default function CommunityClient({
                         <div className="flex items-start justify-between">
                           <div className="flex-1" onClick={() => setSelectedPost(post)}>
                             <div className="flex items-center gap-3 mb-2">
-                              <Avatar profile={post.profiles} size="sm" />
+                              {post.anonymous
+                                ? <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center flex-shrink-0"><EyeOff className="h-4 w-4 text-zinc-400" /></div>
+                                : <Avatar profile={post.profiles} size="sm" />
+                              }
                               <div>
                                 <div className="flex items-center gap-1.5">
-                                  <p className="text-sm font-semibold app-text">{post.profiles?.full_name ?? "Student"}</p>
+                                  {post.anonymous
+                                    ? <p className="text-sm font-semibold italic text-zinc-400">Anonymous</p>
+                                    : <><p className="text-sm font-semibold app-text">{post.profiles?.full_name ?? "Student"}</p><BadgeIcon role={post.profiles?.badge_role} /></>
+                                  }
                                   <BadgeIcon role={post.profiles?.badge_role} />
                                 </div>
                                 <p className="text-xs app-text-muted">{formatTime(post.created_at)}</p>
@@ -773,11 +822,16 @@ export default function CommunityClient({
                   </div>
                   <div className="app-surface rounded-xl p-5 border app-border">
                     <div className="flex items-center gap-3 mb-4">
-                      <Avatar profile={selectedNote.profiles} size="sm" />
+                      {selectedNote.anonymous
+                        ? <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center"><EyeOff className="h-4 w-4 text-zinc-400" /></div>
+                        : <Avatar profile={selectedNote.profiles} size="sm" />
+                      }
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <p className="font-semibold text-sm app-text">{selectedNote.profiles?.full_name ?? "Student"}</p>
-                          <BadgeIcon role={selectedNote.profiles?.badge_role} />
+                          {selectedNote.anonymous
+                            ? <p className="font-semibold text-sm italic text-zinc-400">Anonymous</p>
+                            : <><p className="font-semibold text-sm app-text">{selectedNote.profiles?.full_name ?? "Student"}</p><BadgeIcon role={selectedNote.profiles?.badge_role} /></>
+                          }
                         </div>
                         <p className="text-xs app-text-muted">{formatTime(selectedNote.created_at)}</p>
                       </div>
@@ -818,7 +872,7 @@ export default function CommunityClient({
                           <FileText className="h-5 w-5 text-indigo-500 flex-shrink-0 mt-0.5" />
                           <div className="flex-1 min-w-0" onClick={() => setSelectedNote(note)}>
                             <h3 className="font-semibold app-text text-sm truncate">{note.title}</h3>
-                            <p className="text-xs app-text-muted mt-0.5">{note.profiles?.full_name ?? "Student"} • {formatTime(note.created_at)}</p>
+                            <p className="text-xs app-text-muted mt-0.5">{note.anonymous ? "Anonymous" : (note.profiles?.full_name ?? "Student")} • {formatTime(note.created_at)}</p>
                             <p className="text-xs app-text-muted mt-1 line-clamp-2">{note.content}</p>
                           </div>
                           {(canModerate || note.user_id === user.id) && (
