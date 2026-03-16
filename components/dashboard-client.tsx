@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react"
 import Link from "next/link"
 import { sendNotification } from "@/lib/notifications"
-import { Home, Users, UserPlus, Bell, User, Search, MessageCircle, UserCheck, Heart, Send, GraduationCap, Menu, X, Info, Calendar, Users as UsersIcon, BookOpen, ChevronDown, ChevronRight, ShieldCheck, Settings, Trash2, ImageIcon } from "lucide-react"
+import { Home, Users, UserPlus, Bell, User, Search, MessageCircle, UserCheck, Heart, Send, GraduationCap, Menu, X, Info, Calendar, Users as UsersIcon, BookOpen, ChevronDown, ChevronRight, ShieldCheck, Settings, Trash2, ImageIcon, EyeOff, Eye } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { SearchModal } from "@/components/search-modal"
@@ -56,6 +56,7 @@ interface Post {
   content: string
   media_url?: string | null
   media_type?: string | null
+  anonymous?: boolean | null
   created_at: string
   profiles: {
     full_name: string | null
@@ -76,6 +77,7 @@ interface Reply {
   user_id: string
   post_id: string
   content: string
+  anonymous?: boolean | null
   created_at: string
   profiles: {
     full_name: string | null
@@ -149,6 +151,12 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
   const [newPostContent, setNewPostContent] = useState("")
   const [postMedia, setPostMedia] = useState<MediaFile | null>(null)
   const [postMediaUploading, setPostMediaUploading] = useState(false)
+  const [incognito, setIncognito] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("incognito") === "true"
+    }
+    return false
+  })
 
   const displayName = profile?.full_name || user.email.split("@")[0] || "Student"
   const initial = displayName[0].toUpperCase()
@@ -219,6 +227,14 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
   const isLiked = useCallback((postId: string) => likes.some(l => l.post_id === postId && l.user_id === user.id), [likes, user.id])
   const getRepliesForPost = useCallback((postId: string) => replies.filter(r => r.post_id === postId), [replies])
 
+  const toggleIncognito = () => {
+    setIncognito(prev => {
+      const next = !prev
+      localStorage.setItem("incognito", String(next))
+      return next
+    })
+  }
+
   const toggleReplyInput = useCallback((postId: string) => {
     setShowReplyInput(prev => ({ ...prev, [postId]: !prev[postId] }))
   }, [])
@@ -251,13 +267,14 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
     const content = replyInputs[postId]?.trim()
     if (!content) return
     setReplyInputs(prev => ({ ...prev, [postId]: "" }))
+    const anonProfile = { full_name: "Anonymous", avatar_url: null, role: null, badge_role: null }
     const optimistic: Reply = {
       id: `temp-${Date.now()}`,
       user_id: user.id,
       post_id: postId,
       content,
       created_at: new Date().toISOString(),
-      profiles: {
+      profiles: incognito ? anonProfile : {
         full_name: profile?.full_name ?? null,
         avatar_url: profile?.avatar_url ?? null,
         role: profile?.role ?? null,
@@ -265,7 +282,7 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
       }
     }
     setReplies(prev => [...prev, optimistic])
-    const { data } = await supabase.from("replies").insert({ user_id: user.id, post_id: postId, content }).select().single()
+    const { data } = await supabase.from("replies").insert({ user_id: user.id, post_id: postId, content, anonymous: incognito }).select().single()
     if (data) setReplies(prev => prev.map(r => r.id === optimistic.id ? { ...data, profiles: optimistic.profiles } : r))
     // Notify post owner
     const post = posts.find(p => p.id === postId)
@@ -286,6 +303,7 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
     const media = postMedia
     setNewPostContent("")
     setPostMedia(null)
+    const anonProfile = { full_name: "Anonymous", avatar_url: null, role: null, badge_role: null }
     const optimistic: Post = {
       id: `temp-${Date.now()}`,
       user_id: user.id,
@@ -293,7 +311,7 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
       media_url: media?.url ?? null,
       media_type: media?.type ?? null,
       created_at: new Date().toISOString(),
-      profiles: {
+      profiles: incognito ? anonProfile : {
         full_name: profile?.full_name ?? null,
         avatar_url: profile?.avatar_url ?? null,
         role: profile?.role ?? null,
@@ -305,8 +323,9 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
       user_id: user.id, content: content || "",
       media_url: media?.url ?? null,
       media_type: media?.type ?? null,
+      anonymous: incognito,
     }).select().single()
-    if (data) setPosts(prev => prev.map(p => p.id === optimistic.id ? { ...data, profiles: optimistic.profiles } : p))
+    if (data) setPosts(prev => prev.map(p => p.id === optimistic.id ? { ...data, profiles: incognito ? { full_name: "Anonymous", avatar_url: null, role: null, badge_role: null } : optimistic.profiles } : p))
     for (const friend of connectedProfiles) {
       await sendNotification({
         toUserId: friend.id,
@@ -460,6 +479,14 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
               )}
             </Link>
             <NotificationsPanel userId={user.id} />
+            <button
+              onClick={toggleIncognito}
+              title={incognito ? "Incognito ON — click to turn off" : "Turn on Incognito mode"}
+              className={cn("h-9 w-9 flex items-center justify-center rounded-full transition-colors",
+                incognito ? "bg-indigo-600 text-white" : "hover:opacity-80 app-text-muted"
+              )}>
+              {incognito ? <EyeOff className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+            </button>
             <Link href="/settings"
               className="h-9 w-9 flex items-center justify-center rounded-full hover:opacity-80 app-text-muted">
               <Settings className="h-5 w-5" />
@@ -627,10 +654,28 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
           {/* HOME TAB */}
           {activeTab === "home" && (
             <div className="mx-auto max-w-2xl px-4 py-6">
+
+              {/* Incognito banner */}
+              {incognito && (
+                <div className="flex items-center gap-3 bg-indigo-600/20 border border-indigo-500/40 rounded-2xl px-4 py-3 mb-4">
+                  <EyeOff className="h-5 w-5 text-indigo-400 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-indigo-300">Incognito mode is ON</p>
+                    <p className="text-xs text-indigo-400/80">Your posts and replies appear as "Anonymous"</p>
+                  </div>
+                  <button onClick={toggleIncognito} className="text-xs text-indigo-400 hover:opacity-80 border border-indigo-500/40 px-3 py-1 rounded-full">
+                    Turn off
+                  </button>
+                </div>
+              )}
+
               <div className="app-surface rounded-2xl p-5 mb-6 border app-border">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0">
-                    <img src={profile?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
+                    {incognito
+                      ? <EyeOff className="h-5 w-5 text-white" />
+                      : <img src={profile?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
+                    }
                   </div>
                   <div className="flex-1">
                     <input
@@ -667,16 +712,28 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
                   return (
                     <div key={post.id} className={cn("app-surface rounded-2xl p-5 border app-border", post.id.startsWith("temp-") && "opacity-70")}>
                       <div className="flex items-center gap-3 mb-3">
-                        <a href={`/user/${post.user_id}`}>
-                          <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0 hover:opacity-80">
-                            <img src={post.profiles?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
+                        {post.anonymous ? (
+                          <div className="w-10 h-10 rounded-full bg-zinc-700 flex items-center justify-center flex-shrink-0">
+                            <EyeOff className="h-5 w-5 text-zinc-400" />
                           </div>
-                        </a>
+                        ) : (
+                          <a href={`/user/${post.user_id}`}>
+                            <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0 hover:opacity-80">
+                              <img src={post.profiles?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
+                            </div>
+                          </a>
+                        )}
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <a href={`/user/${post.user_id}`} className="font-semibold text-sm hover:underline app-text">{post.profiles?.full_name ?? "Student"}</a>
-                            {post.profiles?.role && <span className="text-xs app-text-muted">({post.profiles.role})</span>}
-                            <Badge badgeRole={post.profiles?.badge_role} />
+                            {post.anonymous ? (
+                              <span className="font-semibold text-sm app-text-muted italic">Anonymous</span>
+                            ) : (
+                              <>
+                                <a href={`/user/${post.user_id}`} className="font-semibold text-sm hover:underline app-text">{post.profiles?.full_name ?? "Student"}</a>
+                                {post.profiles?.role && <span className="text-xs app-text-muted">({post.profiles.role})</span>}
+                                <Badge badgeRole={post.profiles?.badge_role} />
+                              </>
+                            )}
                           </div>
                           <p className="text-xs app-text-muted">{formatTime(post.created_at)}</p>
                         </div>
@@ -708,17 +765,29 @@ export function DashboardClient({ user, profile, profiles, connections: initialC
                         <div className="mt-4 space-y-3 pl-4 border-l-2 app-border">
                           {postReplies.map((reply) => (
                             <div key={reply.id} className={cn("flex gap-3 group", reply.id.startsWith("temp-") && "opacity-70")}>
-                              <a href={`/user/${reply.user_id}`}>
-                                <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0 hover:opacity-80">
-                                  <img src={reply.profiles?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
+                              {reply.anonymous ? (
+                                <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center flex-shrink-0">
+                                  <EyeOff className="h-4 w-4 text-zinc-400" />
                                 </div>
-                              </a>
+                              ) : (
+                                <a href={`/user/${reply.user_id}`}>
+                                  <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0 hover:opacity-80">
+                                    <img src={reply.profiles?.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
+                                  </div>
+                                </a>
+                              )}
                               <div className="flex-1">
                                 <div className="app-input-bg rounded-2xl px-4 py-2">
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <a href={`/user/${reply.user_id}`} className="font-semibold text-sm hover:underline app-text">{reply.profiles?.full_name ?? "Student"}</a>
-                                    {reply.profiles?.role && <span className="text-xs app-text-muted">({reply.profiles.role})</span>}
-                                    <Badge badgeRole={reply.profiles?.badge_role} />
+                                    {reply.anonymous ? (
+                                      <span className="font-semibold text-sm app-text-muted italic">Anonymous</span>
+                                    ) : (
+                                      <>
+                                        <a href={`/user/${reply.user_id}`} className="font-semibold text-sm hover:underline app-text">{reply.profiles?.full_name ?? "Student"}</a>
+                                        {reply.profiles?.role && <span className="text-xs app-text-muted">({reply.profiles.role})</span>}
+                                        <Badge badgeRole={reply.profiles?.badge_role} />
+                                      </>
+                                    )}
                                   </div>
                                   <p className="app-text text-sm leading-relaxed">{reply.content}</p>
                                 </div>

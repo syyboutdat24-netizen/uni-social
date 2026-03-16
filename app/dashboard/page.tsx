@@ -20,7 +20,7 @@ export default async function DashboardPage() {
     supabase.from("profiles").select("id, full_name, bio, avatar_url, role, badge_role").neq("id", user.id),
     supabase.from("connections").select("id, sender_id, receiver_id, status").or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`),
     supabase.from("connections").select("sender_id, receiver_id").eq("status", "accepted"),
-    supabase.from("posts").select("id, user_id, content, created_at").order("created_at", { ascending: false }).limit(30),
+    supabase.from("posts").select("id, user_id, content, anonymous, media_url, media_type, created_at").order("created_at", { ascending: false }).limit(30),
     supabase.from("subject_memberships").select("subject").eq("user_id", user.id),
   ]);
 
@@ -39,7 +39,7 @@ export default async function DashboardPage() {
       ? supabase.from("likes").select("id, user_id, post_id").in("post_id", postIds)
       : Promise.resolve({ data: [] }),
     postIds.length > 0
-      ? supabase.from("replies").select("id, user_id, post_id, parent_reply_id, content, created_at").in("post_id", postIds).order("created_at", { ascending: true })
+      ? supabase.from("replies").select("id, user_id, post_id, parent_reply_id, content, anonymous, created_at").in("post_id", postIds).order("created_at", { ascending: true })
       : Promise.resolve({ data: [] }),
   ]);
 
